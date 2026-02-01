@@ -29,7 +29,7 @@ export class Repository {
     return {
       url:
         Deno.env.get("E5_REPO_URL") ||
-        "https://raw.githubusercontent.com/example/e5-recipes/main",
+        "https://raw.githubusercontent.com/luke-biel/e5/refs/heads/master/repo",
       cacheDir: join(home, ".cache", "e5"),
     };
   }
