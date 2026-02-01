@@ -34,12 +34,6 @@ OPTIONS:
 ENVIRONMENT VARIABLES:
   E5_REQUIREMENTS  Path to requirements.toml
   E5_REPO_URL      Repository URL for package index
-
-EXAMPLES:
-  e5 sync                          # Install all packages from requirements.toml
-  e5 sync --ignore-local           # Reinstall even if different version present
-  e5 list                          # Show status of required packages
-  e5 search toml                   # Search available packages
 `);
 }
 
