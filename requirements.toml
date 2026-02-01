@@ -1,0 +1,5 @@
+packages = [
+  "protobuf-compiler",
+  "hurl",
+  "taplo",
+]

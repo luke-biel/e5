@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "recipes": [
+    {
+      "name": "protobuf-compiler",
+      "description": "Protocol Buffers compiler (protoc)",
+      "file": "protobuf-compiler.toml"
+    },
+    {
+      "name": "hurl",
+      "description": "HTTP client that runs .hurl files",
+      "file": "hurl.toml"
+    },
+    {
+      "name": "taplo",
+      "description": "TOML toolkit with LSP, formatter, and validator",
+      "file": "taplo.toml"
+    }
+  ]
+}

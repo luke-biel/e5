@@ -1,96 +1,106 @@
-import { bold, cyan, green, red, yellow, underline } from "@std/fmt/colors";
+import { bold, cyan, green, red, yellow, underline, dim } from "@std/fmt/colors";
 import {
   Environment,
   detectEnvironment,
-  PackageManager,
 } from "./detector.ts";
 import {
   Recipe,
-  loadRecipe,
   getInstallMethod,
   isInstalled,
 } from "./recipe.ts";
 import { getBackend } from "./backends/mod.ts";
+import { Repository, RepositoryConfig, IndexEntry } from "./repository.ts";
+import { Requirements, loadRequirements, saveRequirements, addPackage, removePackage } from "./requirements.ts";
 
 export class Manager {
+  private recipes: Map<string, Recipe> = new Map();
+
   private constructor(
-    private recipesDir: string,
-    private env: Environment,
-    private recipes: Map<string, Recipe>
+    private requirementsPath: string,
+    private requirements: Requirements,
+    private repository: Repository,
+    private env: Environment
   ) {}
 
-  static async create(recipesDir: string): Promise<Manager> {
-    try {
-      Deno.statSync(recipesDir);
-    } catch {
-      throw new Error(`Recipes directory not found: ${recipesDir}`);
-    }
-
+  static async create(
+    requirementsPath: string,
+    repoConfig?: Partial<RepositoryConfig>
+  ): Promise<Manager> {
+    const requirements = loadRequirements(requirementsPath);
+    const defaultConfig = Repository.getDefaultConfig();
+    const config = { ...defaultConfig, ...repoConfig };
+    const repository = new Repository(config);
     const env = await detectEnvironment();
-    const recipes = new Map<string, Recipe>();
 
-    for (const entry of Deno.readDirSync(recipesDir)) {
-      if (entry.isFile && entry.name.endsWith(".toml")) {
-        try {
-          const recipe = loadRecipe(`${recipesDir}/${entry.name}`);
-          recipes.set(recipe.package.name, recipe);
-        } catch (e) {
-          console.log(
-            yellow(`Warning: Failed to load ${entry.name}: ${(e as Error).message}`)
-          );
-        }
-      }
-    }
-
-    return new Manager(recipesDir, env, recipes);
+    return new Manager(requirementsPath, requirements, repository, env);
   }
 
-  listAll(): void {
-    console.log(bold("Available packages:"));
+  async refreshIndex(): Promise<void> {
+    await this.repository.fetchIndex(true);
+  }
+
+  async listRequired(): Promise<void> {
+    console.log(bold("Required packages:"));
     console.log();
 
-    const names = [...this.recipes.keys()].sort();
+    if (this.requirements.packages.length === 0) {
+      console.log(dim("  No packages in requirements.toml"));
+      console.log(dim("  Use 'e5 add <package>' to add packages"));
+      return;
+    }
 
-    for (const name of names) {
-      const recipe = this.recipes.get(name)!;
-      this.printPackageLine(recipe);
+    for (const name of this.requirements.packages.sort()) {
+      await this.printPackageStatus(name);
     }
   }
 
-  listInstalled(): void {
-    console.log(bold("Installed packages:"));
+  async listInstalled(): Promise<void> {
+    console.log(bold("Installed packages (from requirements):"));
     console.log();
 
-    const names = [...this.recipes.keys()].sort();
     let count = 0;
-
-    for (const name of names) {
-      const recipe = this.recipes.get(name)!;
-      // Note: This is sync check for display purposes
-      const installed = this.isInstalledSync(recipe);
-      if (installed) {
-        const desc = recipe.package.description
-          ? ` - ${recipe.package.description}`
-          : "";
-        console.log(`  ${cyan(name)}${desc}`);
-        count++;
+    for (const name of this.requirements.packages.sort()) {
+      try {
+        const recipe = await this.getRecipe(name);
+        if (this.isInstalledSync(recipe)) {
+          const desc = recipe.package.description
+            ? ` - ${recipe.package.description}`
+            : "";
+          console.log(`  ${cyan(name)}${desc}`);
+          count++;
+        }
+      } catch {
+        // Skip packages we can't fetch
       }
     }
 
     if (count === 0) {
-      console.log("  No packages installed");
+      console.log("  No required packages installed");
     }
   }
 
-  private printPackageLine(recipe: Recipe): void {
-    const installed = this.isInstalledSync(recipe);
-    const status = installed
-      ? green("[installed]")
-      : red("[not installed]");
-    const desc = recipe.package.description
-      ? ` - ${recipe.package.description}`
-      : "";
-    console.log(`  ${cyan(recipe.package.name)} ${status}${desc}`);
+  private async printPackageStatus(name: string): Promise<void> {
+    try {
+      const recipe = await this.getRecipe(name);
+      const installed = this.isInstalledSync(recipe);
+      const status = installed
+        ? green("[installed]")
+        : red("[not installed]");
+      const desc = recipe.package.description
+        ? ` - ${recipe.package.description}`
+        : "";
+      console.log(`  ${cyan(name)} ${status}${desc}`);
+    } catch (e) {
+      console.log(`  ${cyan(name)} ${red("[error]")} - ${(e as Error).message}`);
+    }
+  }
+
+  private async getRecipe(name: string): Promise<Recipe> {
+    if (!this.recipes.has(name)) {
+      const recipe = await this.repository.fetchRecipe(name);
+      this.recipes.set(name, recipe);
+    }
+    return this.recipes.get(name)!;
   }
 
   private isInstalledSync(recipe: Recipe): boolean {
@@ -122,11 +132,41 @@ export class Manager {
     }
   }
 
-  show(packageName: string): void {
-    const recipe = this.recipes.get(packageName);
-    if (!recipe) {
-      throw new Error(`Recipe not found: ${packageName}`);
+  async search(query: string): Promise<void> {
+    console.log(bold(`Searching for "${query}"...`));
+    console.log();
+
+    const results = await this.repository.search(query);
+
+    if (results.length === 0) {
+      console.log(dim("  No packages found"));
+      return;
     }
+
+    for (const entry of results) {
+      const inReqs = this.requirements.packages.includes(entry.name);
+      const marker = inReqs ? green(" [required]") : "";
+      const desc = entry.description ? ` - ${entry.description}` : "";
+      console.log(`  ${cyan(entry.name)}${marker}${desc}`);
+    }
+  }
+
+  async listAvailable(): Promise<void> {
+    console.log(bold("Available packages in repository:"));
+    console.log();
+
+    const index = await this.repository.fetchIndex();
+
+    for (const entry of index.recipes.sort((a, b) => a.name.localeCompare(b.name))) {
+      const inReqs = this.requirements.packages.includes(entry.name);
+      const marker = inReqs ? green(" [required]") : "";
+      const desc = entry.description ? ` - ${entry.description}` : "";
+      console.log(`  ${cyan(entry.name)}${marker}${desc}`);
+    }
+  }
+
+  async show(packageName: string): Promise<void> {
+    const recipe = await this.getRecipe(packageName);
 
     console.log(`${bold("Package:")} ${cyan(recipe.package.name)}`);
 
@@ -137,6 +177,9 @@ export class Manager {
     if (recipe.package.homepage) {
       console.log(`${bold("Homepage:")} ${recipe.package.homepage}`);
     }
+
+    const inReqs = this.requirements.packages.includes(packageName);
+    console.log(`${bold("In requirements:")} ${inReqs ? green("yes") : yellow("no")}`);
 
     const installed = this.isInstalledSync(recipe);
     const status = installed ? green("installed") : red("not installed");
@@ -173,6 +216,41 @@ export class Manager {
     }
   }
 
+  async add(packageNames: string[]): Promise<void> {
+    // Verify packages exist in index
+    await this.repository.fetchIndex();
+
+    for (const name of packageNames) {
+      const index = this.repository.getIndex();
+      const exists = index?.recipes.some(r => r.name === name);
+
+      if (!exists) {
+        console.log(`${red("Error:")} Package '${name}' not found in repository`);
+        continue;
+      }
+
+      if (addPackage(this.requirements, name)) {
+        console.log(`${green("Added:")} ${cyan(name)} to requirements`);
+      } else {
+        console.log(`${yellow("Skipped:")} ${cyan(name)} already in requirements`);
+      }
+    }
+
+    saveRequirements(this.requirementsPath, this.requirements);
+  }
+
+  async remove(packageNames: string[]): Promise<void> {
+    for (const name of packageNames) {
+      if (removePackage(this.requirements, name)) {
+        console.log(`${green("Removed:")} ${cyan(name)} from requirements`);
+      } else {
+        console.log(`${yellow("Skipped:")} ${cyan(name)} not in requirements`);
+      }
+    }
+
+    saveRequirements(this.requirementsPath, this.requirements);
+  }
+
   async install(packages: string[], dryRun: boolean): Promise<void> {
     for (const pkg of packages) {
       await this.installOne(pkg, dryRun);
@@ -180,10 +258,7 @@ export class Manager {
   }
 
   private async installOne(packageName: string, dryRun: boolean): Promise<void> {
-    const recipe = this.recipes.get(packageName);
-    if (!recipe) {
-      throw new Error(`Recipe not found: ${packageName}`);
-    }
+    const recipe = await this.getRecipe(packageName);
 
     if (await isInstalled(recipe)) {
       console.log(
@@ -224,18 +299,40 @@ export class Manager {
   }
 
   async sync(dryRun: boolean): Promise<void> {
-    const toInstall: string[] = [];
+    if (this.requirements.packages.length === 0) {
+      console.log(yellow("No packages in requirements.toml"));
+      console.log(dim("Use 'e5 add <package>' to add packages"));
+      return;
+    }
 
-    for (const [name, recipe] of this.recipes) {
-      if (!(await isInstalled(recipe))) {
-        if (getInstallMethod(recipe, this.env.os, this.env.availableManagers)) {
-          toInstall.push(name);
+    const toInstall: string[] = [];
+    const errors: string[] = [];
+
+    for (const name of this.requirements.packages) {
+      try {
+        const recipe = await this.getRecipe(name);
+        if (!(await isInstalled(recipe))) {
+          if (getInstallMethod(recipe, this.env.os, this.env.availableManagers)) {
+            toInstall.push(name);
+          } else {
+            errors.push(`${name}: no installation method for this system`);
+          }
         }
+      } catch (e) {
+        errors.push(`${name}: ${(e as Error).message}`);
       }
     }
 
+    if (errors.length > 0) {
+      console.log(yellow("Warnings:"));
+      for (const err of errors) {
+        console.log(`  ${yellow("!")} ${err}`);
+      }
+      console.log();
+    }
+
     if (toInstall.length === 0) {
-      console.log(green("All packages are already installed!"));
+      console.log(green("All required packages are already installed!"));
       return;
     }
 
@@ -250,7 +347,7 @@ export class Manager {
     await this.install(toInstall, dryRun);
   }
 
-  status(): void {
+  async status(): Promise<void> {
     console.log(underline(bold("Environment Status")));
     console.log();
     console.log(`  ${bold("OS:")} ${cyan(this.env.os)}`);
@@ -262,25 +359,38 @@ export class Manager {
         this.env.availableManagers.join(", ")
       )}`
     );
-    console.log(`  ${bold("Recipes directory:")} ${cyan(this.recipesDir)}`);
+    console.log(`  ${bold("Requirements file:")} ${cyan(this.requirementsPath)}`);
+
+    try {
+      const index = await this.repository.fetchIndex();
+      console.log(`  ${bold("Repository packages:")} ${cyan(String(index.recipes.length))}`);
+    } catch {
+      console.log(`  ${bold("Repository:")} ${red("unavailable")}`);
+    }
+
     console.log();
 
-    const total = this.recipes.size;
+    const total = this.requirements.packages.length;
     let installed = 0;
     let available = 0;
 
-    for (const recipe of this.recipes.values()) {
-      if (this.isInstalledSync(recipe)) {
-        installed++;
-      }
-      if (getInstallMethod(recipe, this.env.os, this.env.availableManagers)) {
-        available++;
+    for (const name of this.requirements.packages) {
+      try {
+        const recipe = await this.getRecipe(name);
+        if (this.isInstalledSync(recipe)) {
+          installed++;
+        }
+        if (getInstallMethod(recipe, this.env.os, this.env.availableManagers)) {
+          available++;
+        }
+      } catch {
+        // Skip errors
       }
     }
 
-    console.log(underline(bold("Package Summary")));
+    console.log(underline(bold("Requirements Summary")));
     console.log();
-    console.log(`  ${bold("Total recipes:")} ${total}`);
+    console.log(`  ${bold("Total required:")} ${total}`);
     console.log(`  ${bold("Installed:")} ${green(String(installed))} / ${total}`);
     console.log(
       `  ${bold("Available for this system:")} ${cyan(String(available))}`

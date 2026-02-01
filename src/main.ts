@@ -2,53 +2,63 @@ import { parseArgs } from "@std/cli/parse-args";
 import { red, bold } from "@std/fmt/colors";
 import { Manager } from "./manager.ts";
 
-function getDefaultRecipesDir(): string {
-  const envDir = Deno.env.get("ENVSETUP_RECIPES_DIR");
-  if (envDir) return envDir;
-
-  const home = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "";
-  const configDir = `${home}/.config/envsetup/recipes`;
-
-  try {
-    Deno.statSync(configDir);
-    return configDir;
-  } catch {
-    return "./recipes";
-  }
+function getDefaultRequirementsPath(): string {
+  const envPath = Deno.env.get("E5_REQUIREMENTS");
+  if (envPath) return envPath;
+  return "./requirements.toml";
 }
 
 function printHelp(): void {
-  console.log(`envsetup - Cross-platform tool installation manager
+  console.log(`e5 - Cross-platform tool installation manager
 
 USAGE:
-  envsetup [OPTIONS] <COMMAND>
+  e5 [OPTIONS] <COMMAND>
 
 COMMANDS:
-  list              List available packages
-  show <package>    Show details about a specific package
-  install <pkg...>  Install one or more packages
-  sync              Install all packages that aren't already installed
-  status            Show installation status of all packages
+  list                List required packages and their status
+  list --available    List all packages available in repository
+  search <query>      Search for packages in repository
+  show <package>      Show details about a specific package
+  add <pkg...>        Add packages to requirements.toml
+  remove <pkg...>     Remove packages from requirements.toml
+  install <pkg...>    Install specific packages
+  sync                Install all required packages that aren't installed
+  status              Show environment and requirements status
+  refresh             Refresh the repository index cache
 
 OPTIONS:
-  -r, --recipes-dir <DIR>  Path to recipes directory
-  -n, --dry-run            Show what would be done without executing
-  -i, --installed          Only show installed packages (for list command)
-  -h, --help               Show this help message
-  -V, --version            Show version
+  -f, --file <PATH>      Path to requirements.toml (default: ./requirements.toml)
+  -u, --repo-url <URL>   Repository URL (or set E5_REPO_URL)
+  -n, --dry-run          Show what would be done without executing
+  -i, --installed        Only show installed packages (for list command)
+  -a, --available        Show all available packages (for list command)
+  -h, --help             Show this help message
+  -V, --version          Show version
+
+ENVIRONMENT VARIABLES:
+  E5_REQUIREMENTS  Path to requirements.toml
+  E5_REPO_URL      Repository URL for package index
+
+EXAMPLES:
+  e5 add protobuf-compiler hurl
+  e5 sync
+  e5 list
+  e5 search toml
 `);
 }
 
 async function main(): Promise<number> {
   const args = parseArgs(Deno.args, {
-    string: ["recipes-dir", "r"],
-    boolean: ["help", "h", "version", "V", "dry-run", "n", "installed", "i"],
+    string: ["file", "f", "repo-url", "u"],
+    boolean: ["help", "h", "version", "V", "dry-run", "n", "installed", "i", "available", "a"],
     alias: {
-      r: "recipes-dir",
+      f: "file",
+      u: "repo-url",
       h: "help",
       V: "version",
       n: "dry-run",
       i: "installed",
+      a: "available",
     },
   });
 
@@ -58,7 +68,7 @@ async function main(): Promise<number> {
   }
 
   if (args.version || args.V) {
-    console.log("envsetup 0.1.0");
+    console.log("e5 0.1.0");
     return 0;
   }
 
@@ -68,21 +78,36 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  const recipesDir = args["recipes-dir"] || getDefaultRecipesDir();
+  const requirementsPath = args.file || getDefaultRequirementsPath();
+  const repoUrl = args["repo-url"];
   const dryRun = args["dry-run"] || false;
   const installedOnly = args.installed || false;
+  const showAvailable = args.available || false;
 
   try {
-    const manager = await Manager.create(recipesDir);
+    const repoConfig = repoUrl ? { url: repoUrl } : undefined;
+    const manager = await Manager.create(requirementsPath, repoConfig);
 
     switch (command) {
       case "list":
-        if (installedOnly) {
-          manager.listInstalled();
+        if (showAvailable) {
+          await manager.listAvailable();
+        } else if (installedOnly) {
+          await manager.listInstalled();
         } else {
-          manager.listAll();
+          await manager.listRequired();
         }
         break;
+
+      case "search": {
+        const query = args._[1] as string | undefined;
+        if (!query) {
+          console.error(red("Error: search query required"));
+          return 1;
+        }
+        await manager.search(query);
+        break;
+      }
 
       case "show": {
         const pkg = args._[1] as string | undefined;
@@ -90,7 +115,27 @@ async function main(): Promise<number> {
           console.error(red("Error: package name required"));
           return 1;
         }
-        manager.show(pkg);
+        await manager.show(pkg);
+        break;
+      }
+
+      case "add": {
+        const packages = args._.slice(1) as string[];
+        if (packages.length === 0) {
+          console.error(red("Error: at least one package name required"));
+          return 1;
+        }
+        await manager.add(packages);
+        break;
+      }
+
+      case "remove": {
+        const packages = args._.slice(1) as string[];
+        if (packages.length === 0) {
+          console.error(red("Error: at least one package name required"));
+          return 1;
+        }
+        await manager.remove(packages);
         break;
       }
 
@@ -109,7 +154,12 @@ async function main(): Promise<number> {
         break;
 
       case "status":
-        manager.status();
+        await manager.status();
+        break;
+
+      case "refresh":
+        await manager.refreshIndex();
+        console.log("Repository index refreshed");
         break;
 
       default:

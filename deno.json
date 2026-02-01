@@ -1,8 +1,9 @@
 {
   "tasks": {
-    "run": "deno run --allow-read --allow-run --allow-env src/main.ts",
-    "install": "deno install --allow-read --allow-run --allow-env -n envsetup src/main.ts",
-    "compile": "deno compile --allow-read --allow-run --allow-env -o envsetup src/main.ts"
+    "run": "deno run --allow-read --allow-write --allow-run --allow-env --allow-net src/main.ts",
+    "install": "deno install --allow-read --allow-write --allow-run --allow-env --allow-net -n e5 src/main.ts",
+    "compile": "deno compile --allow-read --allow-write --allow-run --allow-env --allow-net -o e5 src/main.ts",
+    "serve-repo": "deno run --allow-net --allow-read scripts/serve-repo.ts"
   },
   "imports": {
     "@std/toml": "jsr:@std/toml@^1",
