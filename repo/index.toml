@@ -1,0 +1,26 @@
+version = "1.0.0"
+
+[[recipes]]
+name = "hurl"
+description = "HTTP client that runs .hurl files"
+file = "hurl.toml"
+
+[[recipes]]
+name = "libssl-dev"
+description = "OpenSSL development libraries"
+file = "libssl-dev.toml"
+
+[[recipes]]
+name = "pkg-config"
+description = "Helper tool for compiling applications and libraries"
+file = "pkg-config.toml"
+
+[[recipes]]
+name = "protobuf-compiler"
+description = "Protocol Buffers compiler (protoc)"
+file = "protobuf-compiler.toml"
+
+[[recipes]]
+name = "taplo"
+description = "TOML toolkit with LSP, formatter, and validator"
+file = "taplo.toml"

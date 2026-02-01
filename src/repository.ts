@@ -34,14 +34,15 @@ export class Repository {
       return this.index;
     }
 
-    const indexUrl = `${this.config.url}/index.json`;
+    const indexUrl = `${this.config.url}/index.toml`;
     const response = await fetch(indexUrl);
 
     if (!response.ok) {
       throw new Error(`Failed to fetch index from ${indexUrl}: ${response.status}`);
     }
 
-    this.index = (await response.json()) as RepositoryIndex;
+    const content = await response.text();
+    this.index = parseToml(content) as unknown as RepositoryIndex;
     return this.index;
   }
 
