@@ -2,14 +2,24 @@
   "version": "1.0.0",
   "recipes": [
     {
-      "name": "protobuf-compiler",
-      "description": "Protocol Buffers compiler (protoc)",
-      "file": "protobuf-compiler.toml"
-    },
-    {
       "name": "hurl",
       "description": "HTTP client that runs .hurl files",
       "file": "hurl.toml"
+    },
+    {
+      "name": "libssl-dev",
+      "description": "OpenSSL development libraries",
+      "file": "libssl-dev.toml"
+    },
+    {
+      "name": "pkg-config",
+      "description": "Helper tool for compiling applications and libraries",
+      "file": "pkg-config.toml"
+    },
+    {
+      "name": "protobuf-compiler",
+      "description": "Protocol Buffers compiler (protoc)",
+      "file": "protobuf-compiler.toml"
     },
     {
       "name": "taplo",

@@ -4,26 +4,15 @@ description = "HTTP client that runs .hurl files"
 homepage = "https://hurl.dev/"
 verify_binary = "hurl"
 
-[install.macos]
-package_name = "hurl"
-
-[install.ubuntu]
-package_name = "hurl"
-
-[install.arch]
-package_name = "hurl"
-
 [install.homebrew]
 package_name = "hurl"
 
 [install.pacman]
 package_name = "hurl"
 
-# Cargo fallback for systems without native package
 [install.cargo]
 package_name = "hurl"
 
-# Script fallback using official installer
 [install.script]
 script = """
 set -e
@@ -50,5 +39,4 @@ mkdir -p "$HOME/.local/bin"
 cp "hurl-${VERSION}-${HURL_ARCH}-${HURL_OS}/bin/hurl" "$HOME/.local/bin/"
 cp "hurl-${VERSION}-${HURL_ARCH}-${HURL_OS}/bin/hurlfmt" "$HOME/.local/bin/"
 rm -rf "${TARBALL}" "hurl-${VERSION}-${HURL_ARCH}-${HURL_OS}"
-echo "Installed hurl to ~/.local/bin/"
 """

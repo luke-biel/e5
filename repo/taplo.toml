@@ -4,31 +4,20 @@ description = "TOML toolkit with LSP, formatter, and validator"
 homepage = "https://taplo.tamasfe.dev/"
 verify_binary = "taplo"
 
-[install.macos]
-tap = "tamasfe/taplo"
-package_name = "taplo"
-
 [install.homebrew]
-tap = "tamasfe/taplo"
 package_name = "taplo"
-
-[install.arch]
-package_name = "taplo-cli"
+tap = "tamasfe/taplo"
 
 [install.pacman]
 package_name = "taplo-cli"
 
-# Cargo is the primary installation method for most systems
 [install.cargo]
 package_name = "taplo-cli"
 features = ["lsp"]
 
-# NPM alternative
 [install.npm]
 package_name = "@taplo/cli"
-global = true
 
-# Script fallback
 [install.script]
 script = """
 set -e
@@ -54,5 +43,4 @@ gunzip -f "${TARBALL}"
 chmod +x "taplo-full-${TAPLO_OS}-${TAPLO_ARCH}"
 mkdir -p "$HOME/.local/bin"
 mv "taplo-full-${TAPLO_OS}-${TAPLO_ARCH}" "$HOME/.local/bin/taplo"
-echo "Installed taplo to ~/.local/bin/"
 """

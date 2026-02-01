@@ -79,22 +79,8 @@ export function loadRecipe(path: string): Recipe {
 
 export function getInstallMethod(
   recipe: Recipe,
-  osName: string,
   availableManagers: PackageManager[]
 ): [PackageManager, InstallMethod] | null {
-  // Try OS-specific method first
-  const osMethod = recipe.installMethods.get(osName);
-  if (osMethod) {
-    const manager = inferManager(osName, osMethod);
-    if (
-      manager &&
-      (availableManagers.includes(manager) || manager === PackageManager.Script)
-    ) {
-      return [manager, osMethod];
-    }
-  }
-
-  // Try available package managers
   for (const manager of availableManagers) {
     const method = recipe.installMethods.get(manager);
     if (method) {
@@ -102,42 +88,7 @@ export function getInstallMethod(
     }
   }
 
-  // Fall back to script
-  const scriptMethod = recipe.installMethods.get("script");
-  if (scriptMethod) {
-    return [PackageManager.Script, scriptMethod];
-  }
-
   return null;
-}
-
-function inferManager(
-  key: string,
-  method: InstallMethod
-): PackageManager | null {
-  if (method.script) {
-    return PackageManager.Script;
-  }
-
-  const mapping: Record<string, PackageManager> = {
-    macos: PackageManager.Homebrew,
-    homebrew: PackageManager.Homebrew,
-    brew: PackageManager.Homebrew,
-    ubuntu: PackageManager.Apt,
-    debian: PackageManager.Apt,
-    apt: PackageManager.Apt,
-    arch: PackageManager.Pacman,
-    pacman: PackageManager.Pacman,
-    fedora: PackageManager.Dnf,
-    dnf: PackageManager.Dnf,
-    cargo: PackageManager.Cargo,
-    npm: PackageManager.Npm,
-    npx: PackageManager.Npm,
-    pipx: PackageManager.Pipx,
-    script: PackageManager.Script,
-  };
-
-  return mapping[key.toLowerCase()] || null;
 }
 
 export async function isInstalled(recipe: Recipe): Promise<boolean> {

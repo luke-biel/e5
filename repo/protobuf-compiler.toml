@@ -4,21 +4,6 @@ description = "Protocol Buffers compiler (protoc)"
 homepage = "https://protobuf.dev/"
 verify_binary = "protoc"
 
-[install.macos]
-package_name = "protobuf"
-
-[install.ubuntu]
-package_name = "protobuf-compiler"
-
-[install.debian]
-package_name = "protobuf-compiler"
-
-[install.arch]
-package_name = "protobuf"
-
-[install.fedora]
-package_name = "protobuf-compiler"
-
 [install.homebrew]
 package_name = "protobuf"
 
@@ -28,7 +13,9 @@ package_name = "protobuf-compiler"
 [install.pacman]
 package_name = "protobuf"
 
-# Fallback: install from source
+[install.dnf]
+package_name = "protobuf-compiler"
+
 [install.script]
 script = """
 set -e
@@ -48,5 +35,4 @@ esac
 curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-${PROTOC_OS}-${PROTOC_ARCH}.zip"
 unzip -o "protoc-${PROTOC_VERSION}-${PROTOC_OS}-${PROTOC_ARCH}.zip" -d "$HOME/.local"
 rm "protoc-${PROTOC_VERSION}-${PROTOC_OS}-${PROTOC_ARCH}.zip"
-echo "Installed protoc to ~/.local/bin/protoc"
 """

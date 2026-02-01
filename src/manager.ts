@@ -9,7 +9,7 @@ import {
   isInstalled,
 } from "./recipe.ts";
 import { getBackend } from "./backends/mod.ts";
-import { Repository, RepositoryConfig, IndexEntry } from "./repository.ts";
+import { Repository, RepositoryConfig } from "./repository.ts";
 import { Requirements, loadRequirements, saveRequirements, addPackage, removePackage } from "./requirements.ts";
 
 export class Manager {
@@ -190,34 +190,26 @@ export class Manager {
     for (const [key, method] of recipe.installMethods) {
       const pkgName = method.packageName || recipe.package.name;
       if (method.script) {
-        console.log(`  ${yellow(key)} (script): custom script`);
+        console.log(`  ${yellow(key)}: <script>`);
       } else {
         console.log(`  ${yellow(key)}: ${pkgName}`);
       }
     }
 
     console.log();
-    console.log(bold("Current environment:"));
-    console.log(`  OS: ${cyan(this.env.os)}`);
-    console.log(
-      `  Available managers: ${cyan(this.env.availableManagers.join(", "))}`
-    );
+    console.log(bold("Available tools:"));
+    console.log(`  ${cyan(this.env.availableManagers.join(", "))}`);
 
-    const result = getInstallMethod(
-      recipe,
-      this.env.os,
-      this.env.availableManagers
-    );
+    const result = getInstallMethod(recipe, this.env.availableManagers);
     if (result) {
       const [manager] = result;
-      console.log(`  Would use: ${green(manager)} (${green("available")})`);
+      console.log(`${bold("Would use:")} ${green(manager)}`);
     } else {
-      console.log(`  Would use: ${red("none")} (${red("no method available")})`);
+      console.log(`${bold("Would use:")} ${red("none (no method available)")}`);
     }
   }
 
   async add(packageNames: string[]): Promise<void> {
-    // Verify packages exist in index
     await this.repository.fetchIndex();
 
     for (const name of packageNames) {
@@ -267,14 +259,10 @@ export class Manager {
       return;
     }
 
-    const result = getInstallMethod(
-      recipe,
-      this.env.os,
-      this.env.availableManagers
-    );
+    const result = getInstallMethod(recipe, this.env.availableManagers);
     if (!result) {
       throw new Error(
-        `No installation method available for ${packageName} on this system`
+        `No installation method available for ${packageName}`
       );
     }
 
@@ -312,10 +300,10 @@ export class Manager {
       try {
         const recipe = await this.getRecipe(name);
         if (!(await isInstalled(recipe))) {
-          if (getInstallMethod(recipe, this.env.os, this.env.availableManagers)) {
+          if (getInstallMethod(recipe, this.env.availableManagers)) {
             toInstall.push(name);
           } else {
-            errors.push(`${name}: no installation method for this system`);
+            errors.push(`${name}: no installation method available`);
           }
         }
       } catch (e) {
@@ -348,16 +336,10 @@ export class Manager {
   }
 
   async status(): Promise<void> {
-    console.log(underline(bold("Environment Status")));
+    console.log(underline(bold("Environment")));
     console.log();
-    console.log(`  ${bold("OS:")} ${cyan(this.env.os)}`);
     console.log(
-      `  ${bold("Default manager:")} ${cyan(this.env.defaultManager || "none")}`
-    );
-    console.log(
-      `  ${bold("Available managers:")} ${cyan(
-        this.env.availableManagers.join(", ")
-      )}`
+      `  ${bold("Available tools:")} ${cyan(this.env.availableManagers.join(", "))}`
     );
     console.log(`  ${bold("Requirements file:")} ${cyan(this.requirementsPath)}`);
 
@@ -380,7 +362,7 @@ export class Manager {
         if (this.isInstalledSync(recipe)) {
           installed++;
         }
-        if (getInstallMethod(recipe, this.env.os, this.env.availableManagers)) {
+        if (getInstallMethod(recipe, this.env.availableManagers)) {
           available++;
         }
       } catch {
@@ -388,15 +370,11 @@ export class Manager {
       }
     }
 
-    console.log(underline(bold("Requirements Summary")));
+    console.log(underline(bold("Requirements")));
     console.log();
-    console.log(`  ${bold("Total required:")} ${total}`);
+    console.log(`  ${bold("Total:")} ${total}`);
     console.log(`  ${bold("Installed:")} ${green(String(installed))} / ${total}`);
-    console.log(
-      `  ${bold("Available for this system:")} ${cyan(String(available))}`
-    );
-    console.log(
-      `  ${bold("Not installable here:")} ${yellow(String(total - available))}`
-    );
+    console.log(`  ${bold("Available:")} ${cyan(String(available))}`);
+    console.log(`  ${bold("Unavailable:")} ${yellow(String(total - available))}`);
   }
 }
