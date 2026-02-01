@@ -2,10 +2,6 @@ export enum PackageManager {
   Homebrew = "homebrew",
   Apt = "apt",
   Pacman = "pacman",
-  Dnf = "dnf",
-  Cargo = "cargo",
-  Npm = "npm",
-  Pipx = "pipx",
   Script = "script",
 }
 
@@ -32,10 +28,6 @@ export async function detectEnvironment(): Promise<Environment> {
     [PackageManager.Homebrew, "brew"],
     [PackageManager.Apt, "apt"],
     [PackageManager.Pacman, "pacman"],
-    [PackageManager.Dnf, "dnf"],
-    [PackageManager.Cargo, "cargo"],
-    [PackageManager.Npm, "npm"],
-    [PackageManager.Pipx, "pipx"],
     [PackageManager.Script, null],
   ];
 

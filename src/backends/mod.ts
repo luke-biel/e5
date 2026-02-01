@@ -3,9 +3,6 @@ import { InstallMethod } from "../recipe.ts";
 import { HomebrewBackend } from "./homebrew.ts";
 import { AptBackend } from "./apt.ts";
 import { PacmanBackend } from "./pacman.ts";
-import { CargoBackend } from "./cargo.ts";
-import { NpmBackend } from "./npm.ts";
-import { PipxBackend } from "./pipx.ts";
 import { ScriptBackend } from "./script.ts";
 
 export interface Backend {
@@ -13,7 +10,8 @@ export interface Backend {
   install(
     packageName: string,
     method: InstallMethod,
-    dryRun: boolean
+    dryRun: boolean,
+    version?: string
   ): Promise<void>;
   isInstalled(packageName: string): Promise<boolean>;
 }
@@ -32,14 +30,7 @@ export function getBackend(manager: PackageManager): Backend {
     case PackageManager.Apt:
       return new AptBackend();
     case PackageManager.Pacman:
-    case PackageManager.Dnf:
       return new PacmanBackend();
-    case PackageManager.Cargo:
-      return new CargoBackend();
-    case PackageManager.Npm:
-      return new NpmBackend();
-    case PackageManager.Pipx:
-      return new PipxBackend();
     case PackageManager.Script:
       return new ScriptBackend();
   }

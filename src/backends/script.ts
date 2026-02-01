@@ -7,18 +7,28 @@ export class ScriptBackend implements Backend {
   async install(
     packageName: string,
     method: InstallMethod,
-    dryRun: boolean
+    dryRun: boolean,
+    version?: string
   ): Promise<void> {
     if (!method.script) {
       throw new BackendError("No script provided for script installation");
     }
 
     if (dryRun) {
-      console.log("  Would run script:");
+      if (version) {
+        console.log(`  Would run script with VERSION=${version}:`);
+      } else {
+        console.log("  Would run script:");
+      }
       for (const line of method.script.split("\n")) {
         console.log(`    ${line}`);
       }
       return;
+    }
+
+    const env: Record<string, string> = { ...Deno.env.toObject() };
+    if (version) {
+      env["VERSION"] = version;
     }
 
     const command = new Deno.Command("sh", {
@@ -26,6 +36,7 @@ export class ScriptBackend implements Backend {
       stdin: "inherit",
       stdout: "inherit",
       stderr: "inherit",
+      env,
     });
 
     const { code } = await command.output();

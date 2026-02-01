@@ -9,6 +9,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create requirements.toml
+        run: |
+          cat <<EOF > requirements.toml
+          packages = [
+            "protobuf-compiler",
+            "hurl",
+            "taplo",
+          ]
+          EOF
+
       - name: Setup environment
         uses: luke-biel/e5@master
         with:

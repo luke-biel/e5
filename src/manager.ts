@@ -297,7 +297,7 @@ export class Manager {
     }
 
     const backend = getBackend(manager);
-    await backend.install(packageName, method, dryRun);
+    await backend.install(packageName, method, dryRun, effectiveVersion);
 
     if (!dryRun) {
       console.log(`${bold(green("Installed:"))} ${cyan(packageName)}${versionDisplay}`);

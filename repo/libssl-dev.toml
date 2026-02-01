@@ -12,6 +12,3 @@ package_name = "libssl-dev"
 
 [install.pacman]
 package_name = "openssl"
-
-[install.dnf]
-package_name = "openssl-devel"

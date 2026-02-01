@@ -10,13 +10,10 @@ package_name = "hurl"
 [install.pacman]
 package_name = "hurl"
 
-[install.cargo]
-package_name = "hurl"
-
 [install.script]
 script = """
 set -e
-VERSION="5.0.1"
+VERSION="${VERSION:-7.1.0}"
 ARCH=$(uname -m)
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 

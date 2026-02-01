@@ -7,8 +7,6 @@ export interface InstallMethod {
   cask?: boolean;
   script?: string;
   postInstall?: string;
-  features?: string[];
-  global?: boolean;
 }
 
 export interface PackageInfo {
@@ -42,8 +40,6 @@ interface RawRecipe {
       cask?: boolean;
       script?: string;
       post_install?: string;
-      features?: string[];
-      global?: boolean;
     }
   >;
 }
@@ -61,8 +57,6 @@ export function loadRecipe(path: string): Recipe {
         cask: value.cask,
         script: value.script,
         postInstall: value.post_install,
-        features: value.features,
-        global: value.global ?? true,
       });
     }
   }

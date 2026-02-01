@@ -7,7 +7,8 @@ export class AptBackend implements Backend {
   async install(
     packageName: string,
     method: InstallMethod,
-    dryRun: boolean
+    dryRun: boolean,
+    _version?: string
   ): Promise<void> {
     const pkgName = method.packageName || packageName;
     await runCommand(["sudo", "apt-get", "install", "-y", pkgName], dryRun);

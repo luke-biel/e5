@@ -84,8 +84,6 @@ export class Repository {
           cask?: boolean;
           script?: string;
           post_install?: string;
-          features?: string[];
-          global?: boolean;
         }
       >;
     };
@@ -99,8 +97,6 @@ export class Repository {
           cask: value.cask,
           script: value.script,
           postInstall: value.post_install,
-          features: value.features,
-          global: value.global ?? true,
         });
       }
     }

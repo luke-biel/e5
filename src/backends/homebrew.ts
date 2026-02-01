@@ -7,7 +7,8 @@ export class HomebrewBackend implements Backend {
   async install(
     packageName: string,
     method: InstallMethod,
-    dryRun: boolean
+    dryRun: boolean,
+    _version?: string
   ): Promise<void> {
     const pkgName = method.packageName || packageName;
 

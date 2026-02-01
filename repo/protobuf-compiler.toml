@@ -12,27 +12,3 @@ package_name = "protobuf-compiler"
 
 [install.pacman]
 package_name = "protobuf"
-
-[install.dnf]
-package_name = "protobuf-compiler"
-
-[install.script]
-script = """
-set -e
-PROTOC_VERSION="25.1"
-ARCH=$(uname -m)
-case "$ARCH" in
-    x86_64) PROTOC_ARCH="x86_64" ;;
-    aarch64|arm64) PROTOC_ARCH="aarch_64" ;;
-    *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
-esac
-OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-case "$OS" in
-    linux) PROTOC_OS="linux" ;;
-    darwin) PROTOC_OS="osx" ;;
-    *) echo "Unsupported OS: $OS"; exit 1 ;;
-esac
-curl -LO "https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-${PROTOC_OS}-${PROTOC_ARCH}.zip"
-unzip -o "protoc-${PROTOC_VERSION}-${PROTOC_OS}-${PROTOC_ARCH}.zip" -d "$HOME/.local"
-rm "protoc-${PROTOC_VERSION}-${PROTOC_OS}-${PROTOC_ARCH}.zip"
-"""

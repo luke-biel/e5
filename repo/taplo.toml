@@ -11,17 +11,10 @@ tap = "tamasfe/taplo"
 [install.pacman]
 package_name = "taplo-cli"
 
-[install.cargo]
-package_name = "taplo-cli"
-features = ["lsp"]
-
-[install.npm]
-package_name = "@taplo/cli"
-
 [install.script]
 script = """
 set -e
-VERSION="0.9.3"
+VERSION="${VERSION:-0.10.0}"
 ARCH=$(uname -m)
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 
