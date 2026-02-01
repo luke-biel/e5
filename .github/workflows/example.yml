@@ -1,0 +1,21 @@
+name: Example - Setup Environment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup environment
+        uses: luke-biel/e5@master
+        with:
+          requirements: requirements.toml
+
+      - name: Verify installation
+        run: |
+          protoc --version
+          hurl --version
+          taplo --version

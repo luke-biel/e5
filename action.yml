@@ -1,0 +1,42 @@
+name: 'e5 - Environment Setup'
+description: 'Install tools and libraries defined in requirements.toml'
+author: 'luke-biel'
+
+branding:
+  icon: 'package'
+  color: 'blue'
+
+inputs:
+  requirements:
+    description: 'Path to requirements.toml file'
+    required: false
+    default: 'requirements.toml'
+  repo-url:
+    description: 'Custom repository URL for recipes'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Deno
+      uses: denoland/setup-deno@v2
+      with:
+        deno-version: v2.x
+
+    - name: Run e5 sync
+      shell: bash
+      env:
+        E5_REQUIREMENTS: ${{ inputs.requirements }}
+        E5_REPO_URL: ${{ inputs.repo-url }}
+      run: |
+        deno run \
+          --allow-read \
+          --allow-write \
+          --allow-run \
+          --allow-env \
+          --allow-net \
+          ${{ github.action_path }}/src/main.ts \
+          -f "$E5_REQUIREMENTS" \
+          ${E5_REPO_URL:+-u "$E5_REPO_URL"} \
+          sync
