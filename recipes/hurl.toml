@@ -1,0 +1,54 @@
+[package]
+name = "hurl"
+description = "HTTP client that runs .hurl files"
+homepage = "https://hurl.dev/"
+verify_binary = "hurl"
+
+[install.macos]
+package_name = "hurl"
+
+[install.ubuntu]
+package_name = "hurl"
+
+[install.arch]
+package_name = "hurl"
+
+[install.homebrew]
+package_name = "hurl"
+
+[install.pacman]
+package_name = "hurl"
+
+# Cargo fallback for systems without native package
+[install.cargo]
+package_name = "hurl"
+
+# Script fallback using official installer
+[install.script]
+script = """
+set -e
+VERSION="5.0.1"
+ARCH=$(uname -m)
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+case "$ARCH" in
+    x86_64) HURL_ARCH="x86_64" ;;
+    aarch64|arm64) HURL_ARCH="aarch64" ;;
+    *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+esac
+
+case "$OS" in
+    linux) HURL_OS="linux" ;;
+    darwin) HURL_OS="macos" ;;
+    *) echo "Unsupported OS: $OS"; exit 1 ;;
+esac
+
+TARBALL="hurl-${VERSION}-${HURL_ARCH}-${HURL_OS}.tar.gz"
+curl -LO "https://github.com/Orange-OpenSource/hurl/releases/download/${VERSION}/${TARBALL}"
+tar -xzf "${TARBALL}"
+mkdir -p "$HOME/.local/bin"
+cp "hurl-${VERSION}-${HURL_ARCH}-${HURL_OS}/bin/hurl" "$HOME/.local/bin/"
+cp "hurl-${VERSION}-${HURL_ARCH}-${HURL_OS}/bin/hurlfmt" "$HOME/.local/bin/"
+rm -rf "${TARBALL}" "hurl-${VERSION}-${HURL_ARCH}-${HURL_OS}"
+echo "Installed hurl to ~/.local/bin/"
+"""

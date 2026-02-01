@@ -1,0 +1,14 @@
+{
+  "tasks": {
+    "run": "deno run --allow-read --allow-run --allow-env src/main.ts",
+    "install": "deno install --allow-read --allow-run --allow-env -n envsetup src/main.ts",
+    "compile": "deno compile --allow-read --allow-run --allow-env -o envsetup src/main.ts"
+  },
+  "imports": {
+    "@std/toml": "jsr:@std/toml@^1",
+    "@std/cli": "jsr:@std/cli@^1",
+    "@std/fmt": "jsr:@std/fmt@^1",
+    "@std/path": "jsr:@std/path@^1",
+    "@std/fs": "jsr:@std/fs@^1"
+  }
+}
