@@ -1,7 +1,5 @@
 import { parse as parseToml } from "@std/toml";
-import { ensureDir } from "@std/fs";
-import { join } from "@std/path";
-import { Recipe, InstallMethod, PackageInfo } from "./recipe.ts";
+import { Recipe, InstallMethod } from "./recipe.ts";
 
 export interface IndexEntry {
   name: string;
@@ -16,7 +14,6 @@ export interface RepositoryIndex {
 
 export interface RepositoryConfig {
   url: string;
-  cacheDir: string;
 }
 
 export class Repository {
@@ -25,28 +22,16 @@ export class Repository {
   constructor(private config: RepositoryConfig) {}
 
   static getDefaultConfig(): RepositoryConfig {
-    const home = Deno.env.get("HOME") || Deno.env.get("USERPROFILE") || "";
     return {
       url:
         Deno.env.get("E5_REPO_URL") ||
         "https://raw.githubusercontent.com/luke-biel/e5/refs/heads/master/repo",
-      cacheDir: join(home, ".cache", "e5"),
     };
   }
 
-  async fetchIndex(forceRefresh = false): Promise<RepositoryIndex> {
-    const cacheFile = join(this.config.cacheDir, "index.json");
-
-    if (!forceRefresh) {
-      try {
-        const cached = await this.loadCachedIndex(cacheFile);
-        if (cached) {
-          this.index = cached;
-          return cached;
-        }
-      } catch {
-        // Cache miss, fetch from remote
-      }
+  async fetchIndex(): Promise<RepositoryIndex> {
+    if (this.index) {
+      return this.index;
     }
 
     const indexUrl = `${this.config.url}/index.json`;
@@ -56,52 +41,11 @@ export class Repository {
       throw new Error(`Failed to fetch index from ${indexUrl}: ${response.status}`);
     }
 
-    const index = (await response.json()) as RepositoryIndex;
-    this.index = index;
-
-    // Cache the index
-    await this.cacheIndex(cacheFile, index);
-
-    return index;
-  }
-
-  private async loadCachedIndex(cacheFile: string): Promise<RepositoryIndex | null> {
-    try {
-      const stat = await Deno.stat(cacheFile);
-      const age = Date.now() - (stat.mtime?.getTime() || 0);
-      const maxAge = 3600 * 1000; // 1 hour
-
-      if (age < maxAge) {
-        const content = await Deno.readTextFile(cacheFile);
-        return JSON.parse(content) as RepositoryIndex;
-      }
-    } catch {
-      return null;
-    }
-    return null;
-  }
-
-  private async cacheIndex(cacheFile: string, index: RepositoryIndex): Promise<void> {
-    try {
-      await ensureDir(this.config.cacheDir);
-      await Deno.writeTextFile(cacheFile, JSON.stringify(index, null, 2));
-    } catch {
-      // Ignore cache write errors
-    }
+    this.index = (await response.json()) as RepositoryIndex;
+    return this.index;
   }
 
   async fetchRecipe(name: string): Promise<Recipe> {
-    // Check cache first
-    const cacheFile = join(this.config.cacheDir, "recipes", `${name}.toml`);
-
-    try {
-      const content = await Deno.readTextFile(cacheFile);
-      return this.parseRecipe(content);
-    } catch {
-      // Cache miss
-    }
-
-    // Fetch from remote
     if (!this.index) {
       await this.fetchIndex();
     }
@@ -119,12 +63,7 @@ export class Repository {
     }
 
     const content = await response.text();
-    const recipe = this.parseRecipe(content);
-
-    // Cache the recipe
-    await this.cacheRecipe(cacheFile, content);
-
-    return recipe;
+    return this.parseRecipe(content);
   }
 
   private parseRecipe(content: string): Recipe {
@@ -175,15 +114,6 @@ export class Repository {
       },
       installMethods,
     };
-  }
-
-  private async cacheRecipe(cacheFile: string, content: string): Promise<void> {
-    try {
-      await ensureDir(join(this.config.cacheDir, "recipes"));
-      await Deno.writeTextFile(cacheFile, content);
-    } catch {
-      // Ignore cache write errors
-    }
   }
 
   async search(query: string): Promise<IndexEntry[]> {

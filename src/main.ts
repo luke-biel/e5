@@ -19,12 +19,7 @@ COMMANDS:
   list --available    List all packages available in repository
   search <query>      Search for packages in repository
   show <package>      Show details about a specific package
-  add <pkg...>        Add packages to requirements.toml
-  remove <pkg...>     Remove packages from requirements.toml
-  install <pkg...>    Install specific packages
   sync                Install all required packages that aren't installed
-  status              Show environment and requirements status
-  refresh             Refresh the repository index cache
 
 OPTIONS:
   -f, --file <PATH>      Path to requirements.toml (default: ./requirements.toml)
@@ -32,6 +27,7 @@ OPTIONS:
   -n, --dry-run          Show what would be done without executing
   -i, --installed        Only show installed packages (for list command)
   -a, --available        Show all available packages (for list command)
+  --ignore-local         Install packages even if a different version is present locally
   -h, --help             Show this help message
   -V, --version          Show version
 
@@ -40,17 +36,17 @@ ENVIRONMENT VARIABLES:
   E5_REPO_URL      Repository URL for package index
 
 EXAMPLES:
-  e5 add protobuf-compiler hurl
-  e5 sync
-  e5 list
-  e5 search toml
+  e5 sync                          # Install all packages from requirements.toml
+  e5 sync --ignore-local           # Reinstall even if different version present
+  e5 list                          # Show status of required packages
+  e5 search toml                   # Search available packages
 `);
 }
 
 async function main(): Promise<number> {
   const args = parseArgs(Deno.args, {
     string: ["file", "f", "repo-url", "u"],
-    boolean: ["help", "h", "version", "V", "dry-run", "n", "installed", "i", "available", "a"],
+    boolean: ["help", "h", "version", "V", "dry-run", "n", "installed", "i", "available", "a", "ignore-local"],
     alias: {
       f: "file",
       u: "repo-url",
@@ -83,6 +79,7 @@ async function main(): Promise<number> {
   const dryRun = args["dry-run"] || false;
   const installedOnly = args.installed || false;
   const showAvailable = args.available || false;
+  const ignoreLocal = args["ignore-local"] || false;
 
   try {
     const repoConfig = repoUrl ? { url: repoUrl } : undefined;
@@ -119,47 +116,8 @@ async function main(): Promise<number> {
         break;
       }
 
-      case "add": {
-        const packages = args._.slice(1) as string[];
-        if (packages.length === 0) {
-          console.error(red("Error: at least one package name required"));
-          return 1;
-        }
-        await manager.add(packages);
-        break;
-      }
-
-      case "remove": {
-        const packages = args._.slice(1) as string[];
-        if (packages.length === 0) {
-          console.error(red("Error: at least one package name required"));
-          return 1;
-        }
-        await manager.remove(packages);
-        break;
-      }
-
-      case "install": {
-        const packages = args._.slice(1) as string[];
-        if (packages.length === 0) {
-          console.error(red("Error: at least one package name required"));
-          return 1;
-        }
-        await manager.install(packages, dryRun);
-        break;
-      }
-
       case "sync":
-        await manager.sync(dryRun);
-        break;
-
-      case "status":
-        await manager.status();
-        break;
-
-      case "refresh":
-        await manager.refreshIndex();
-        console.log("Repository index refreshed");
+        await manager.sync(dryRun, ignoreLocal);
         break;
 
       default:

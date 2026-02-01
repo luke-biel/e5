@@ -17,6 +17,7 @@ export interface PackageInfo {
   homepage?: string;
   verifyCommand?: string;
   verifyBinary?: string;
+  versionCommand?: string;
 }
 
 export interface Recipe {
@@ -31,6 +32,7 @@ interface RawRecipe {
     homepage?: string;
     verify_command?: string;
     verify_binary?: string;
+    version_command?: string;
   };
   install?: Record<
     string,
@@ -72,6 +74,7 @@ export function loadRecipe(path: string): Recipe {
       homepage: raw.package.homepage,
       verifyCommand: raw.package.verify_command,
       verifyBinary: raw.package.verify_binary,
+      versionCommand: raw.package.version_command,
     },
     installMethods,
   };
@@ -118,4 +121,116 @@ export async function isInstalled(recipe: Recipe): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function getInstalledVersion(recipe: Recipe): Promise<string | null> {
+  const binary = recipe.package.verifyBinary || recipe.package.name;
+
+  // Use custom version command if provided
+  if (recipe.package.versionCommand) {
+    try {
+      const command = new Deno.Command("sh", {
+        args: ["-c", recipe.package.versionCommand],
+        stdout: "piped",
+        stderr: "piped",
+      });
+      const { code, stdout, stderr } = await command.output();
+      if (code === 0) {
+        const output = new TextDecoder().decode(stdout) + new TextDecoder().decode(stderr);
+        return extractVersion(output);
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  // Try common version flags
+  const versionFlags = ["--version", "-V", "-v", "version"];
+  for (const flag of versionFlags) {
+    try {
+      const command = new Deno.Command(binary, {
+        args: [flag],
+        stdout: "piped",
+        stderr: "piped",
+      });
+      const { code, stdout, stderr } = await command.output();
+      if (code === 0) {
+        const output = new TextDecoder().decode(stdout) + new TextDecoder().decode(stderr);
+        const version = extractVersion(output);
+        if (version) {
+          return version;
+        }
+      }
+    } catch {
+      // Try next flag
+    }
+  }
+
+  return null;
+}
+
+function extractVersion(output: string): string | null {
+  // Common version patterns:
+  // "tool 1.2.3", "tool version 1.2.3", "v1.2.3", "1.2.3"
+  const patterns = [
+    /(\d+\.\d+\.\d+(?:[-+][a-zA-Z0-9.]+)?)/,  // SemVer: 1.2.3, 1.2.3-beta, 1.2.3+build
+    /(\d+\.\d+)/,  // Major.Minor: 1.2
+  ];
+
+  for (const pattern of patterns) {
+    const match = output.match(pattern);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  return null;
+}
+
+export interface VersionCheckResult {
+  installed: boolean;
+  installedVersion: string | null;
+  versionMatch: boolean;
+  requiredVersion: string | null;
+}
+
+export async function checkVersion(
+  recipe: Recipe,
+  requiredVersion?: string
+): Promise<VersionCheckResult> {
+  const installed = await isInstalled(recipe);
+  if (!installed) {
+    return {
+      installed: false,
+      installedVersion: null,
+      versionMatch: false,
+      requiredVersion: requiredVersion || null,
+    };
+  }
+
+  const installedVersion = await getInstalledVersion(recipe);
+
+  if (!requiredVersion) {
+    return {
+      installed: true,
+      installedVersion,
+      versionMatch: true,
+      requiredVersion: null,
+    };
+  }
+
+  const versionMatch = installedVersion !== null &&
+    normalizeVersion(installedVersion) === normalizeVersion(requiredVersion);
+
+  return {
+    installed: true,
+    installedVersion,
+    versionMatch,
+    requiredVersion,
+  };
+}
+
+function normalizeVersion(version: string): string {
+  // Remove leading 'v' if present
+  return version.replace(/^v/, "").trim();
 }

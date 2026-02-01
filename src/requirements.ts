@@ -1,7 +1,23 @@
-import { parse as parseToml, stringify as stringifyToml } from "@std/toml";
+import { parse as parseToml } from "@std/toml";
+
+export interface PackageRequirement {
+  name: string;
+  version?: string;
+}
 
 export interface Requirements {
   packages: string[];
+}
+
+export function parsePackageSpec(spec: string): PackageRequirement {
+  const atIndex = spec.lastIndexOf("@");
+  if (atIndex > 0) {
+    return {
+      name: spec.substring(0, atIndex),
+      version: spec.substring(atIndex + 1),
+    };
+  }
+  return { name: spec };
 }
 
 export function loadRequirements(path: string): Requirements {
@@ -17,27 +33,4 @@ export function loadRequirements(path: string): Requirements {
     }
     throw e;
   }
-}
-
-export function saveRequirements(path: string, requirements: Requirements): void {
-  const content = stringifyToml({ packages: requirements.packages });
-  Deno.writeTextFileSync(path, content);
-}
-
-export function addPackage(requirements: Requirements, packageName: string): boolean {
-  if (requirements.packages.includes(packageName)) {
-    return false;
-  }
-  requirements.packages.push(packageName);
-  requirements.packages.sort();
-  return true;
-}
-
-export function removePackage(requirements: Requirements, packageName: string): boolean {
-  const index = requirements.packages.indexOf(packageName);
-  if (index === -1) {
-    return false;
-  }
-  requirements.packages.splice(index, 1);
-  return true;
 }
