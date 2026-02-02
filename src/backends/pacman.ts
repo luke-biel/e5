@@ -8,7 +8,7 @@ export class PacmanBackend implements Backend {
   private static cacheUpdated = false;
 
   async install(
-    packageName: string,
+    pkgName: string,
     method: InstallMethod,
     dryRun: boolean,
     version?: string
@@ -19,13 +19,13 @@ export class PacmanBackend implements Backend {
       PacmanBackend.cacheUpdated = true;
     }
 
-    const pkgName = method.packageName || packageName;
+    const name = method.pkgName || pkgName;
 
     // Pacman doesn't support version pinning directly.
     // Would require using Arch Linux Archive or downgrade utility.
     if (version) {
       console.log(
-        yellow(`  Warning: Pacman does not support version pinning. Installing latest version of ${pkgName}.`)
+        yellow(`  Warning: Pacman does not support version pinning. Installing latest version of ${name}.`)
       );
       console.log(
         yellow(`  For specific versions, use a script backend with the Arch Linux Archive.`)
@@ -33,7 +33,7 @@ export class PacmanBackend implements Backend {
     }
 
     await runCommand(
-      ["sudo", "pacman", "-S", "--noconfirm", pkgName],
+      ["sudo", "pacman", "-S", "--noconfirm", name],
       dryRun
     );
     await runPostInstall(method, dryRun);

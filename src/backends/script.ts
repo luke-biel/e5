@@ -6,7 +6,7 @@ export class ScriptBackend implements Backend {
   name = "script";
 
   async install(
-    packageName: string,
+    pkgName: string,
     method: InstallMethod,
     dryRun: boolean,
     version?: string
@@ -42,7 +42,7 @@ export class ScriptBackend implements Backend {
 
     const { code } = await command.output();
     if (code !== 0) {
-      throw new BackendError(`Installation script for ${packageName} failed`);
+      throw new BackendError(`Installation script for ${pkgName} failed`);
     }
 
     await runPostInstall(method, dryRun);

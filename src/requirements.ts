@@ -1,15 +1,10 @@
 import { parse as parseToml } from "@std/toml";
 
-interface PackageRequirement {
-  name: string;
-  version?: string;
-}
-
 export interface Requirements {
   packages: string[];
 }
 
-export function parsePackageSpec(spec: string): PackageRequirement {
+export function parsePackageSpec(spec: string): { name: string; version?: string } {
   const atIndex = spec.lastIndexOf("@");
   if (atIndex > 0) {
     return {

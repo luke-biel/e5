@@ -5,10 +5,10 @@ homepage = "https://protobuf.dev/"
 verify_binary = "protoc"
 
 [install.homebrew]
-package_name = "protobuf"
+pkg_name = "protobuf"
 
 [install.apt]
-package_name = "protobuf-compiler"
+pkg_name = "protobuf-compiler"
 
 [install.pacman]
-package_name = "protobuf"
+pkg_name = "protobuf"

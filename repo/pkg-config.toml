@@ -5,10 +5,10 @@ homepage = "https://www.freedesktop.org/wiki/Software/pkg-config/"
 verify_binary = "pkg-config"
 
 [install.homebrew]
-package_name = "pkg-config"
+pkg_name = "pkg-config"
 
 [install.apt]
-package_name = "pkg-config"
+pkg_name = "pkg-config"
 
 [install.pacman]
-package_name = "pkgconf"
+pkg_name = "pkgconf"

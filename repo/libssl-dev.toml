@@ -5,10 +5,10 @@ homepage = "https://www.openssl.org/"
 verify_command = "pkg-config --exists openssl"
 
 [install.homebrew]
-package_name = "openssl"
+pkg_name = "openssl"
 
 [install.apt]
-package_name = "libssl-dev"
+pkg_name = "libssl-dev"
 
 [install.pacman]
-package_name = "openssl"
+pkg_name = "openssl"

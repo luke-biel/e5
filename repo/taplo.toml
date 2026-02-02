@@ -5,11 +5,11 @@ homepage = "https://taplo.tamasfe.dev/"
 verify_binary = "taplo"
 
 [install.homebrew]
-package_name = "taplo"
+pkg_name = "taplo"
 tap = "tamasfe/taplo"
 
 [install.pacman]
-package_name = "taplo-cli"
+pkg_name = "taplo-cli"
 
 [install.script]
 script = """

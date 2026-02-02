@@ -59,9 +59,9 @@ For example, if a package has both `apt` and `script` installation methods defin
 
 Use `e5 show <package>` to see the fallback chain for a specific package.
 
-# Security
+## Security
 
 `e5` is designed to be as crude as possible. It will eval some commands on your system, which can lead to eg.: secret exfiltration.
 It's also designed to be ran in a privileged environment. One may guess what kind of attacks this may lead to.
 
-**If you are using it, create your own repository to ensure you control the scripts that are executed.**
+**If you are using it, create your own package repository to ensure you control the scripts that are executed.**

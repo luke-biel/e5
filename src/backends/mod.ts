@@ -8,7 +8,7 @@ import { ScriptBackend } from "./script.ts";
 export interface Backend {
   name: string;
   install(
-    packageName: string,
+    pkgName: string,
     method: InstallMethod,
     dryRun: boolean,
     version?: string

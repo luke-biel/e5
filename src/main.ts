@@ -16,7 +16,7 @@ USAGE:
   e5 [OPTIONS] <COMMAND>
 
 COMMANDS:
-  list                List required packages and their status
+  list                List required packages
   list --available    List all packages available in repository
   search <query>      Search for packages in repository
   show <package>      Show details about a specific package
@@ -26,7 +26,6 @@ OPTIONS:
   -f, --file <PATH>      Path to requirements.toml (default: ./requirements.toml)
   -u, --repo-url <URL>   Repository URL (or set E5_REPO_URL)
   -n, --dry-run          Show what would be done without executing
-  -i, --installed        Only show installed packages (for list command)
   -a, --available        Show all available packages (for list command)
   -h, --help             Show this help message
   -V, --version          Show version
@@ -40,14 +39,13 @@ ENVIRONMENT VARIABLES:
 async function main(): Promise<number> {
   const args = parseArgs(Deno.args, {
     string: ["file", "repo-url"],
-    boolean: ["help", "version", "dry-run", "installed", "available"],
+    boolean: ["help", "version", "dry-run", "available"],
     alias: {
       f: "file",
       u: "repo-url",
       h: "help",
       V: "version",
       n: "dry-run",
-      i: "installed",
       a: "available",
     },
   });
@@ -71,7 +69,6 @@ async function main(): Promise<number> {
   const requirementsPath = args.file || getDefaultRequirementsPath();
   const repoUrl = args["repo-url"];
   const dryRun = args["dry-run"] || false;
-  const installedOnly = args.installed || false;
   const availableOnly = args.available || false;
 
   try {
@@ -82,8 +79,6 @@ async function main(): Promise<number> {
       case "list":
         if (availableOnly) {
           await manager.listAvailable();
-        } else if (installedOnly) {
-          await manager.listInstalled();
         } else {
           await manager.listRequired();
         }

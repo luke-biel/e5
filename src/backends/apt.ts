@@ -7,7 +7,7 @@ export class AptBackend implements Backend {
   private static cacheUpdated = false;
 
   async install(
-    packageName: string,
+    pkgName: string,
     method: InstallMethod,
     dryRun: boolean,
     version?: string
@@ -18,7 +18,7 @@ export class AptBackend implements Backend {
       AptBackend.cacheUpdated = true;
     }
 
-    let pkgSpec = method.packageName || packageName;
+    let pkgSpec = method.pkgName || pkgName;
 
     // APT supports version pinning with package=version syntax
     if (version) {

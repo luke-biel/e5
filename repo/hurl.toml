@@ -5,10 +5,10 @@ homepage = "https://hurl.dev/"
 verify_binary = "hurl"
 
 [install.homebrew]
-package_name = "hurl"
+pkg_name = "hurl"
 
 [install.pacman]
-package_name = "hurl"
+pkg_name = "hurl"
 
 [install.script]
 script = """
