@@ -20,7 +20,7 @@ COMMANDS:
   list --available    List all packages available in repository
   search <query>      Search for packages in repository
   show <package>      Show details about a specific package
-  sync                Install all required packages that aren't installed
+  sync                Install all required packages
 
 OPTIONS:
   -f, --file <PATH>      Path to requirements.toml (default: ./requirements.toml)
@@ -28,7 +28,6 @@ OPTIONS:
   -n, --dry-run          Show what would be done without executing
   -i, --installed        Only show installed packages (for list command)
   -a, --available        Show all available packages (for list command)
-  --ignore-local         Install packages even if a different version is present locally
   -h, --help             Show this help message
   -V, --version          Show version
 
@@ -40,8 +39,8 @@ ENVIRONMENT VARIABLES:
 
 async function main(): Promise<number> {
   const args = parseArgs(Deno.args, {
-    string: ["file", "f", "repo-url", "u"],
-    boolean: ["help", "h", "version", "V", "dry-run", "n", "installed", "i", "available", "a", "ignore-local"],
+    string: ["file", "repo-url"],
+    boolean: ["help", "version", "dry-run", "installed", "available"],
     alias: {
       f: "file",
       u: "repo-url",
@@ -53,12 +52,12 @@ async function main(): Promise<number> {
     },
   });
 
-  if (args.help || args.h) {
+  if (args.help) {
     printHelp();
     return 0;
   }
 
-  if (args.version || args.V) {
+  if (args.version) {
     console.log(`${config.name} ${config.version}`);
     return 0;
   }
@@ -73,8 +72,7 @@ async function main(): Promise<number> {
   const repoUrl = args["repo-url"];
   const dryRun = args["dry-run"] || false;
   const installedOnly = args.installed || false;
-  const showAvailable = args.available || false;
-  const ignoreLocal = args["ignore-local"] || false;
+  const availableOnly = args.available || false;
 
   try {
     const repoConfig = repoUrl ? { url: repoUrl } : undefined;
@@ -82,7 +80,7 @@ async function main(): Promise<number> {
 
     switch (command) {
       case "list":
-        if (showAvailable) {
+        if (availableOnly) {
           await manager.listAvailable();
         } else if (installedOnly) {
           await manager.listInstalled();
@@ -112,7 +110,7 @@ async function main(): Promise<number> {
       }
 
       case "sync":
-        await manager.sync(dryRun, ignoreLocal);
+        await manager.sync(dryRun);
         break;
 
       default:

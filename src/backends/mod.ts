@@ -15,6 +15,24 @@ export interface Backend {
   ): Promise<void>;
 }
 
+/**
+ * Returns whether a package manager supports version pinning.
+ * - apt: Yes (package=version syntax)
+ * - script: Yes (VERSION env variable)
+ * - homebrew: No (uses versioned formula names instead)
+ * - pacman: No (requires Arch Linux Archive)
+ */
+export function supportsVersioning(manager: PackageManager): boolean {
+  switch (manager) {
+    case PackageManager.Apt:
+    case PackageManager.Script:
+      return true;
+    case PackageManager.Homebrew:
+    case PackageManager.Pacman:
+      return false;
+  }
+}
+
 export class BackendError extends Error {
   constructor(message: string) {
     super(message);

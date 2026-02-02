@@ -1,6 +1,6 @@
 import { parse as parseToml } from "@std/toml";
 
-export interface PackageRequirement {
+interface PackageRequirement {
   name: string;
   version?: string;
 }

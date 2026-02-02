@@ -80,6 +80,7 @@ export class Manager {
     console.log();
 
     let count = 0;
+    const errors: Array<{ name: string; error: string }> = [];
     for (const name of this.requirements.packages.sort()) {
       try {
         const recipe = await this.getRecipe(name);
@@ -90,8 +91,16 @@ export class Manager {
           console.log(`  ${cyan(name)}${desc}`);
           count++;
         }
-      } catch {
-        // Skip packages we can't fetch
+      } catch (e) {
+        errors.push({ name, error: (e as Error).message });
+      }
+    }
+
+    if (errors.length > 0) {
+      console.log();
+      console.log(yellow("Errors:"));
+      for (const { name, error } of errors) {
+        console.log(`  ${yellow("!")} ${name}: ${error}`);
       }
     }
 
@@ -177,7 +186,8 @@ export class Manager {
     }
   }
 
-  async show(packageName: string): Promise<void> {
+  async show(packageSpec: string): Promise<void> {
+    const { name: packageName, version } = parsePackageSpec(packageSpec);
     const recipe = await this.getRecipe(packageName);
 
     console.log(`${bold("Package:")} ${cyan(recipe.package.name)}`);
@@ -212,10 +222,14 @@ export class Manager {
     console.log(bold("Available tools:"));
     console.log(`  ${cyan(this.env.availableManagers.join(", "))}`);
 
-    const methods = getInstallMethods(recipe, this.env.availableManagers);
+    const methods = getInstallMethods(recipe, this.env.availableManagers, version);
     if (methods.length > 0) {
       const chain = methods.map(([m]) => m).join(" → ");
-      console.log(`${bold("Fallback chain:")} ${green(chain)}`);
+      if (version) {
+        console.log(`${bold("Fallback chain")} ${dim(`(for version ${version})`)}${bold(":")} ${green(chain)}`);
+      } else {
+        console.log(`${bold("Fallback chain:")} ${green(chain)}`);
+      }
     } else {
       console.log(`${bold("Fallback chain:")} ${red("none (no method available)")}`);
     }
@@ -225,34 +239,13 @@ export class Manager {
   private async installOne(
     packageSpec: string,
     dryRun: boolean,
-    ignoreLocal = false,
     requiredVersion?: string
   ): Promise<void> {
     const { name: packageName, version } = parsePackageSpec(packageSpec);
     const effectiveVersion = requiredVersion || version;
     const recipe = await this.getRecipe(packageName);
 
-    if (!ignoreLocal) {
-      const versionCheck = await checkVersion(recipe, effectiveVersion);
-
-      if (versionCheck.installed) {
-        if (effectiveVersion && !versionCheck.versionMatch) {
-          console.log(
-            `${yellow("Version mismatch:")} ${cyan(packageName)} has version ${versionCheck.installedVersion || "unknown"}, but ${effectiveVersion} is required`
-          );
-          console.log(
-            `${dim("  Use --ignore-local to install the required version anyway")}`
-          );
-          return;
-        }
-        console.log(
-          `${yellow("Skipping:")} ${cyan(packageName)} is already installed${versionCheck.installedVersion ? ` (${versionCheck.installedVersion})` : ""}`
-        );
-        return;
-      }
-    }
-
-    const methods = getInstallMethods(recipe, this.env.availableManagers);
+    const methods = getInstallMethods(recipe, this.env.availableManagers, effectiveVersion);
     if (methods.length === 0) {
       throw new Error(
         `No installation method available for ${packageName}`
@@ -311,51 +304,24 @@ export class Manager {
     throw new Error(`All installation methods failed for ${packageName}`);
   }
 
-  async sync(dryRun: boolean, ignoreLocal = false): Promise<void> {
+  async sync(dryRun: boolean): Promise<void> {
     if (this.requirements.packages.length === 0) {
       console.log(yellow("No packages in requirements.toml"));
       console.log(dim("Add packages to requirements.toml and run 'e5 sync' again"));
       return;
     }
 
-    const toInstall: Array<{ spec: string; name: string; version?: string; reason: string }> = [];
+    const toInstall: Array<{ spec: string; name: string; version?: string }> = [];
     const errors: string[] = [];
-    const versionMismatches: string[] = [];
 
     for (const packageSpec of this.requirements.packages) {
-      const { name, version: requiredVersion } = parsePackageSpec(packageSpec);
+      const { name, version } = parsePackageSpec(packageSpec);
       try {
         const recipe = await this.getRecipe(name);
-        const versionCheck = await checkVersion(recipe, requiredVersion);
-
-        if (!versionCheck.installed) {
-          if (getInstallMethod(recipe, this.env.availableManagers)) {
-            toInstall.push({
-              spec: packageSpec,
-              name,
-              version: requiredVersion,
-              reason: "not installed",
-            });
-          } else {
-            errors.push(`${name}: no installation method available`);
-          }
-        } else if (requiredVersion && !versionCheck.versionMatch) {
-          if (ignoreLocal) {
-            if (getInstallMethod(recipe, this.env.availableManagers)) {
-              toInstall.push({
-                spec: packageSpec,
-                name,
-                version: requiredVersion,
-                reason: `version mismatch (${versionCheck.installedVersion || "unknown"} -> ${requiredVersion})`,
-              });
-            } else {
-              errors.push(`${name}: no installation method available`);
-            }
-          } else {
-            versionMismatches.push(
-              `${name}: installed ${versionCheck.installedVersion || "unknown"}, required ${requiredVersion}`
-            );
-          }
+        if (getInstallMethod(recipe, this.env.availableManagers)) {
+          toInstall.push({ spec: packageSpec, name, version });
+        } else {
+          errors.push(`${name}: no installation method available`);
         }
       } catch (e) {
         errors.push(`${name}: ${(e as Error).message}`);
@@ -370,33 +336,45 @@ export class Manager {
       console.log();
     }
 
-    if (versionMismatches.length > 0) {
-      console.log(yellow("Version mismatches (use --ignore-local to reinstall):"));
-      for (const mismatch of versionMismatches) {
-        console.log(`  ${yellow("!")} ${mismatch}`);
-      }
-      console.log();
-    }
-
     if (toInstall.length === 0) {
-      if (versionMismatches.length > 0) {
-        console.log(yellow("Some packages have version mismatches. Use --ignore-local to reinstall them."));
-      } else {
-        console.log(green("All required packages are already installed!"));
-      }
       return;
     }
 
     toInstall.sort((a, b) => a.name.localeCompare(b.name));
 
     console.log(`${bold("Sync:")} ${toInstall.length} package(s) to install:`);
-    for (const { spec, reason } of toInstall) {
-      console.log(`  - ${cyan(spec)} (${reason})`);
+    for (const { spec } of toInstall) {
+      console.log(`  - ${cyan(spec)}`);
     }
     console.log();
 
-    for (const { name, version } of toInstall) {
-      await this.installOne(name, dryRun, ignoreLocal, version);
+    const succeeded: string[] = [];
+    const failed: Array<{ spec: string; error: string }> = [];
+
+    for (const { spec, name, version } of toInstall) {
+      try {
+        await this.installOne(name, dryRun, version);
+        succeeded.push(spec);
+      } catch (e) {
+        failed.push({ spec, error: (e as Error).message });
+      }
+    }
+
+    // Print summary
+    console.log();
+    console.log(bold("Sync complete:"));
+    if (succeeded.length > 0) {
+      console.log(`  ${green(String(succeeded.length))} package(s) installed successfully`);
+    }
+    if (failed.length > 0) {
+      console.log(`  ${red(String(failed.length))} package(s) failed:`);
+      for (const { spec, error } of failed) {
+        console.log(`    ${red("✗")} ${cyan(spec)}: ${error}`);
+      }
+    }
+
+    if (failed.length > 0) {
+      throw new Error(`Failed to install ${failed.length} package(s)`);
     }
   }
 
