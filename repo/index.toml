@@ -24,3 +24,8 @@ file = "protobuf-compiler.toml"
 name = "taplo"
 description = "TOML toolkit with LSP, formatter, and validator"
 file = "taplo.toml"
+
+[[recipes]]
+name = "yq"
+description = "Lightweight and portable command-line YAML processor"
+file = "yq.toml"

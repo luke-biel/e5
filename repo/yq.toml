@@ -1,0 +1,33 @@
+[package]
+name = "yq"
+
+[install.homebrew]
+pkg_name = "yq"
+
+[install.pacman]
+pkg_name = "yq"
+
+[install.script]
+script = """
+set -e
+ARCH=$(uname -m)
+OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+
+case "$ARCH" in
+    x86_64) YQ_ARCH="amd64" ;;
+    aarch64|arm64) YQ_ARCH="arm64" ;;
+    *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
+esac
+
+case "$OS" in
+    linux) YQ_OS="linux" ;;
+    darwin) YQ_OS="darwin" ;;
+    *) echo "Unsupported OS: $OS"; exit 1 ;;
+esac
+
+BINARY="yq_${YQ_OS}_${YQ_ARCH}"
+curl -L "https://github.com/mikefarah/yq/releases/latest/download/${BINARY}" -o yq
+chmod +x yq
+mkdir -p "$HOME/.local/bin"
+mv yq "$HOME/.local/bin/"
+"""
