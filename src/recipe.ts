@@ -41,6 +41,19 @@ interface RawRecipe {
   >;
 }
 
+/**
+ * Parses TOML content and validates it against the recipe schema.
+ */
+function parseRawRecipe(content: string): RawRecipe {
+  const parsed = parseToml(content);
+  return validateRecipe(parsed);
+}
+
+/**
+ * Validates parsed TOML data against the recipe schema.
+ * Ensures required fields exist and have correct types.
+ * Throws descriptive errors for invalid input.
+ */
 function validateRecipe(data: unknown): RawRecipe {
   if (typeof data !== "object" || data === null) {
     throw new Error("Invalid recipe: expected an object");
@@ -127,8 +140,7 @@ function validateRecipe(data: unknown): RawRecipe {
 }
 
 export function parseRecipeContent(content: string): Recipe {
-  const parsed = parseToml(content);
-  const raw = validateRecipe(parsed);
+  const raw = parseRawRecipe(content);
 
   const installMethods = new Map<string, InstallMethod>();
   if (raw.install) {
@@ -158,6 +170,11 @@ export function loadRecipe(path: string): Recipe {
   return parseRecipeContent(content);
 }
 
+/**
+ * Returns the first available installation method for a recipe.
+ * Checks managers in priority order and returns the first match.
+ * Use getInstallMethods() when fallback behavior is needed.
+ */
 export function getInstallMethod(
   recipe: Recipe,
   availableManagers: PackageManager[],

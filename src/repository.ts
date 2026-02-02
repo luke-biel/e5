@@ -24,6 +24,11 @@ function isFileUrl(url: string): boolean {
   return url.startsWith("file://");
 }
 
+/**
+ * Fetches text content from a URL, supporting both HTTP(S) and file:// schemes.
+ * For file:// URLs, reads directly from the local filesystem.
+ * For HTTP(S) URLs, performs a fetch with timeout handling.
+ */
 async function fetchContent(url: string): Promise<string> {
   if (isFileUrl(url)) {
     const filePath = fromFileUrl(url);
@@ -56,6 +61,19 @@ async function fetchContent(url: string): Promise<string> {
   return await response.text();
 }
 
+/**
+ * Parses TOML content and validates it against the repository index schema.
+ */
+function parseIndexContent(content: string): RepositoryIndex {
+  const parsed = parseToml(content);
+  return validateIndex(parsed);
+}
+
+/**
+ * Validates parsed TOML data against the repository index schema.
+ * Ensures version field and recipes array exist with correct structure.
+ * Throws descriptive errors for invalid input.
+ */
 function validateIndex(data: unknown): RepositoryIndex {
   if (typeof data !== "object" || data === null) {
     throw new Error("Invalid index: expected an object");
@@ -125,8 +143,7 @@ export class Repository {
 
     const indexUrl = `${this.config.url}/index.toml`;
     const content = await fetchContent(indexUrl);
-    const parsed = parseToml(content);
-    this.index = validateIndex(parsed);
+    this.index = parseIndexContent(content);
     return this.index;
   }
 

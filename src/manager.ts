@@ -161,6 +161,11 @@ export class Manager {
     }
   }
 
+  /**
+   * Installs a single package using available backends with fallback.
+   * Tries each installation method in priority order until one succeeds.
+   * Collects errors from all failed attempts for reporting.
+   */
   private async installOne(
     pkgSpec: string,
     dryRun: boolean,
@@ -243,6 +248,12 @@ export class Manager {
     throw new Error(`All installation methods failed for ${pkgName}`);
   }
 
+  /**
+   * Synchronizes installed packages with requirements.toml.
+   * Validates all packages have available install methods before starting,
+   * then installs each package while collecting successes and failures.
+   * Throws if any package fails to install.
+   */
   async sync(dryRun: boolean): Promise<void> {
     if (this.requirements.packages.length === 0) {
       console.log(yellow("No packages in requirements.toml"));
