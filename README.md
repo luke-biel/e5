@@ -1,6 +1,6 @@
 # e5 (ensure)
 
-Cross-platform tool installation manager. Define your tools in `requirements.toml`, run `e5 sync`.
+Crude package installation manager. Define your tools in `requirements.toml`, run `e5 sync`.
 
 ## Overview
 
@@ -23,6 +23,23 @@ e5 list --available      # List all packages in repository
 e5 search <query>        # Search for packages
 e5 show <package>        # Show package details
 ```
+
+## Custom Repository
+
+By default, e5 fetches recipes from this repository. You can use a custom repository via `--repo-url` flag or `E5_REPO_URL` environment variable:
+
+```bash
+# Remote repository
+e5 --repo-url "https://example.com/my-repo" sync
+
+# Local folder (file:// schema)
+e5 --repo-url "file:///path/to/local/repo" sync
+
+# Via environment variable
+E5_REPO_URL="file:///home/user/my-repo" e5 sync
+```
+
+A repository must contain an `index.toml` and recipe files. See the `repo/` folder for the expected structure.
 
 ## requirements.toml
 

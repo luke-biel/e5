@@ -1,4 +1,5 @@
 import { parse as parseToml } from "@std/toml";
+import { fromFileUrl } from "@std/path";
 import type { Recipe } from "./recipe.ts";
 import { parseRecipeContent } from "./recipe.ts";
 
@@ -18,6 +19,40 @@ export interface RepositoryConfig {
 }
 
 const FETCH_TIMEOUT_MS = 30000; // 30 seconds
+
+function isFileUrl(url: string): boolean {
+  return url.startsWith("file://");
+}
+
+async function fetchContent(url: string): Promise<string> {
+  if (isFileUrl(url)) {
+    const filePath = fromFileUrl(url);
+    try {
+      return await Deno.readTextFile(filePath);
+    } catch (e) {
+      if (e instanceof Deno.errors.NotFound) {
+        throw new Error(`File not found: ${filePath}`);
+      }
+      throw e;
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "TimeoutError") {
+      throw new Error(`Timeout fetching from ${url}`);
+    }
+    throw e;
+  }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch from ${url}: ${response.status}`);
+  }
+
+  return await response.text();
+}
 
 function validateIndex(data: unknown): RepositoryIndex {
   if (typeof data !== "object" || data === null) {
@@ -78,21 +113,7 @@ export class Repository {
     }
 
     const indexUrl = `${this.config.url}/index.toml`;
-    let response: Response;
-    try {
-      response = await fetch(indexUrl, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "TimeoutError") {
-        throw new Error(`Timeout fetching index from ${indexUrl}`);
-      }
-      throw e;
-    }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch index from ${indexUrl}: ${response.status}`);
-    }
-
-    const content = await response.text();
+    const content = await fetchContent(indexUrl);
     const parsed = parseToml(content);
     this.index = validateIndex(parsed);
     return this.index;
@@ -109,21 +130,7 @@ export class Repository {
     }
 
     const recipeUrl = `${this.config.url}/${entry.file}`;
-    let response: Response;
-    try {
-      response = await fetch(recipeUrl, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "TimeoutError") {
-        throw new Error(`Timeout fetching recipe ${name} from ${recipeUrl}`);
-      }
-      throw e;
-    }
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch recipe ${name}: ${response.status}`);
-    }
-
-    const content = await response.text();
+    const content = await fetchContent(recipeUrl);
     return parseRecipeContent(content);
   }
 
