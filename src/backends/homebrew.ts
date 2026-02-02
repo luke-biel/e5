@@ -10,7 +10,7 @@ export class HomebrewBackend implements Backend {
     pkgName: string,
     method: InstallMethod,
     dryRun: boolean,
-    version?: string
+    version?: string,
   ): Promise<void> {
     const name = method.pkgName || pkgName;
 
@@ -18,10 +18,14 @@ export class HomebrewBackend implements Backend {
     // Versioned formulae (e.g., node@18) are separate packages.
     if (version) {
       console.log(
-        yellow(`  Warning: Homebrew does not support version pinning. Installing latest version of ${name}.`)
+        yellow(
+          `  Warning: Homebrew does not support version pinning. Installing latest version of ${name}.`,
+        ),
       );
       console.log(
-        yellow(`  For versioned packages, use the versioned formula name (e.g., node@18) in the recipe.`)
+        yellow(
+          `  For versioned packages, use the versioned formula name (e.g., node@18) in the recipe.`,
+        ),
       );
     }
 

@@ -193,9 +193,9 @@ export class Manager {
       if (dryRun) {
         // In dry-run mode, just show what would happen with the first method
         console.log(
-          `${cyan("Would install:")} ${
-            cyan(pkgName)
-          }${versionDisplay} via ${yellow(manager)}`,
+          `${cyan("Would install:")} ${cyan(pkgName)}${versionDisplay} via ${
+            yellow(manager)
+          }`,
         );
         if (methods.length > 1) {
           const fallbacks = methods.slice(1).map(([m]) => m).join(", ");

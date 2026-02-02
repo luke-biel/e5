@@ -4,7 +4,9 @@ export interface Requirements {
   packages: string[];
 }
 
-export function parsePackageSpec(spec: string): { name: string; version?: string } {
+export function parsePackageSpec(
+  spec: string,
+): { name: string; version?: string } {
   const atIndex = spec.lastIndexOf("@");
   if (atIndex > 0) {
     return {

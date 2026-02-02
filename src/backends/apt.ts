@@ -10,7 +10,7 @@ export class AptBackend implements Backend {
     pkgName: string,
     method: InstallMethod,
     dryRun: boolean,
-    version?: string
+    version?: string,
   ): Promise<void> {
     // Update package cache before first install
     if (!AptBackend.cacheUpdated) {

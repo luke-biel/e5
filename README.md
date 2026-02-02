@@ -1,18 +1,20 @@
 # e5 (ensure)
 
-Crude package installation manager. Define your tools in `requirements.toml`, run `e5 sync`.
+Crude package installation manager. Define your tools in `requirements.toml`,
+run `e5 sync`.
 
 ## Overview
 
-*What e5 isn't:*
+_What e5 isn't:_
 
-* A package/dependency manager
-* A build tool
+- A package/dependency manager
+- A build tool
 
-*What it is:*
+_What it is:_
 
-A simple utility for installing necessary tools in development and CI environments. 
-It's supposed to streamline bare GitHub actions provisioning, and make it easier for new developers to get started with building their projects.
+A simple utility for installing necessary tools in development and CI
+environments. It's supposed to streamline bare GitHub actions provisioning, and
+make it easier for new developers to get started with building their projects.
 
 ## Usage
 
@@ -26,7 +28,8 @@ e5 show <package>        # Show package details
 
 ## Custom Repository
 
-By default, e5 fetches recipes from this repository. You can use a custom repository via `--repo-url` flag or `E5_REPO_URL` environment variable:
+By default, e5 fetches recipes from this repository. You can use a custom
+repository via `--repo-url` flag or `E5_REPO_URL` environment variable:
 
 ```bash
 # Remote repository
@@ -39,7 +42,8 @@ e5 --repo-url "file:///path/to/local/repo" sync
 E5_REPO_URL="file:///home/user/my-repo" e5 sync
 ```
 
-A repository must contain an `index.toml` and recipe files. See the `repo/` folder for the expected structure.
+A repository must contain an `index.toml` and recipe files. See the `repo/`
+folder for the expected structure.
 
 ## requirements.toml
 
@@ -53,32 +57,40 @@ packages = [
 
 ## Version Pinning
 
-You can pin packages to specific versions using the `package@version` syntax. However, version pinning support varies by backend:
+You can pin packages to specific versions using the `package@version` syntax.
+However, version pinning support varies by backend:
 
-| Backend  | Version Support | Notes |
-|----------|-----------------|-------|
-| apt      | Yes | Uses `apt-get install package=version` syntax |
-| script   | Yes | Version passed as `VERSION` environment variable |
-| homebrew | No | Use versioned formula names instead (e.g., `node@18`) |
-| pacman   | No | Use script backend with Arch Linux Archive for specific versions |
+| Backend  | Version Support | Notes                                                            |
+| -------- | --------------- | ---------------------------------------------------------------- |
+| apt      | Yes             | Uses `apt-get install package=version` syntax                    |
+| script   | Yes             | Version passed as `VERSION` environment variable                 |
+| homebrew | No              | Use versioned formula names instead (e.g., `node@18`)            |
+| pacman   | No              | Use script backend with Arch Linux Archive for specific versions |
 
-When a version is specified but the backend doesn't support it, a warning is displayed and the latest version is installed.
+When a version is specified but the backend doesn't support it, a warning is
+displayed and the latest version is installed.
 
 ## Installation Fallback
 
-e5 automatically tries multiple installation methods if one fails. The fallback order is:
+e5 automatically tries multiple installation methods if one fails. The fallback
+order is:
 
 1. **Native package manager** (apt, pacman) - highest priority
 2. **Homebrew** - cross-platform fallback
 3. **Script** - universal fallback
 
-For example, if a package has both `apt` and `script` installation methods defined and `apt` fails (e.g., version not available), e5 will automatically try the `script` method.
+For example, if a package has both `apt` and `script` installation methods
+defined and `apt` fails (e.g., version not available), e5 will automatically try
+the `script` method.
 
 Use `e5 show <package>` to see the fallback chain for a specific package.
 
 ## Security
 
-`e5` is designed to be as crude as possible. It will eval some commands on your system, which can lead to eg.: secret exfiltration.
-It's also designed to be ran in a privileged environment. One may guess what kind of attacks this may lead to.
+`e5` is designed to be as crude as possible. It will eval some commands on your
+system, which can lead to eg.: secret exfiltration. It's also designed to be ran
+in a privileged environment. One may guess what kind of attacks this may lead
+to.
 
-**If you are using it, create your own package repository to ensure you control the scripts that are executed.**
+**If you are using it, create your own package repository to ensure you control
+the scripts that are executed.**

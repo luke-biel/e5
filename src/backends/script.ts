@@ -9,7 +9,7 @@ export class ScriptBackend implements Backend {
     pkgName: string,
     method: InstallMethod,
     dryRun: boolean,
-    version?: string
+    version?: string,
   ): Promise<void> {
     if (!method.script) {
       throw new BackendError("No script provided for script installation");

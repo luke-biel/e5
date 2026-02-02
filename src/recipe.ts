@@ -55,7 +55,9 @@ function validateRecipe(data: unknown): RawRecipe {
   const pkg = obj.package as Record<string, unknown>;
 
   if (typeof pkg.name !== "string" || pkg.name.trim() === "") {
-    throw new Error("Invalid recipe: 'package.name' is required and must be a non-empty string");
+    throw new Error(
+      "Invalid recipe: 'package.name' is required and must be a non-empty string",
+    );
   }
 
   if (pkg.description !== undefined && typeof pkg.description !== "string") {
@@ -71,10 +73,16 @@ function validateRecipe(data: unknown): RawRecipe {
       throw new Error("Invalid recipe: 'install' must be an object");
     }
 
-    for (const [key, method] of Object.entries(obj.install as Record<string, unknown>)) {
+    for (
+      const [key, method] of Object.entries(
+        obj.install as Record<string, unknown>,
+      )
+    ) {
       if (!VALID_PACKAGE_MANAGERS.has(key as PackageManager)) {
         const valid = [...VALID_PACKAGE_MANAGERS].join(", ");
-        throw new Error(`Invalid recipe: 'install.${key}' is not a valid package manager. Valid options: ${valid}`);
+        throw new Error(
+          `Invalid recipe: 'install.${key}' is not a valid package manager. Valid options: ${valid}`,
+        );
       }
 
       if (typeof method !== "object" || method === null) {
@@ -84,23 +92,33 @@ function validateRecipe(data: unknown): RawRecipe {
       const m = method as Record<string, unknown>;
 
       if (m.pkg_name !== undefined && typeof m.pkg_name !== "string") {
-        throw new Error(`Invalid recipe: 'install.${key}.pkg_name' must be a string`);
+        throw new Error(
+          `Invalid recipe: 'install.${key}.pkg_name' must be a string`,
+        );
       }
 
       if (m.tap !== undefined && typeof m.tap !== "string") {
-        throw new Error(`Invalid recipe: 'install.${key}.tap' must be a string`);
+        throw new Error(
+          `Invalid recipe: 'install.${key}.tap' must be a string`,
+        );
       }
 
       if (m.cask !== undefined && typeof m.cask !== "boolean") {
-        throw new Error(`Invalid recipe: 'install.${key}.cask' must be a boolean`);
+        throw new Error(
+          `Invalid recipe: 'install.${key}.cask' must be a boolean`,
+        );
       }
 
       if (m.script !== undefined && typeof m.script !== "string") {
-        throw new Error(`Invalid recipe: 'install.${key}.script' must be a string`);
+        throw new Error(
+          `Invalid recipe: 'install.${key}.script' must be a string`,
+        );
       }
 
       if (m.post_install !== undefined && typeof m.post_install !== "string") {
-        throw new Error(`Invalid recipe: 'install.${key}.post_install' must be a string`);
+        throw new Error(
+          `Invalid recipe: 'install.${key}.post_install' must be a string`,
+        );
       }
     }
   }
@@ -142,7 +160,7 @@ export function loadRecipe(path: string): Recipe {
 
 export function getInstallMethod(
   recipe: Recipe,
-  availableManagers: PackageManager[]
+  availableManagers: PackageManager[],
 ): [PackageManager, InstallMethod] | null {
   for (const manager of availableManagers) {
     const method = recipe.installMethods.get(manager);
@@ -165,7 +183,7 @@ export function getInstallMethod(
 export function getInstallMethods(
   recipe: Recipe,
   availableManagers: PackageManager[],
-  version?: string
+  version?: string,
 ): Array<[PackageManager, InstallMethod]> {
   const methods: Array<[PackageManager, InstallMethod]> = [];
 

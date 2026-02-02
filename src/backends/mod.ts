@@ -11,7 +11,7 @@ export interface Backend {
     pkgName: string,
     method: InstallMethod,
     dryRun: boolean,
-    version?: string
+    version?: string,
   ): Promise<void>;
 }
 
@@ -55,7 +55,7 @@ export function getBackend(manager: PackageManager): Backend {
 
 export async function runCommand(
   cmd: string[],
-  dryRun: boolean
+  dryRun: boolean,
 ): Promise<void> {
   const cmdStr = cmd.join(" ");
 
@@ -79,7 +79,7 @@ export async function runCommand(
 
 export async function runPostInstall(
   method: InstallMethod,
-  dryRun: boolean
+  dryRun: boolean,
 ): Promise<void> {
   if (!method.postInstall) return;
 

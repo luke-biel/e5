@@ -1,23 +1,23 @@
-name: 'e5 - Environment Setup'
-description: 'Install tools and libraries defined in requirements.toml'
-author: 'luke-biel'
+name: "e5 - Environment Setup"
+description: "Install tools and libraries defined in requirements.toml"
+author: "luke-biel"
 
 branding:
-  icon: 'package'
-  color: 'blue'
+  icon: "package"
+  color: "blue"
 
 inputs:
   requirements:
-    description: 'Path to requirements.toml file'
+    description: "Path to requirements.toml file"
     required: false
-    default: 'requirements.toml'
+    default: "requirements.toml"
   repo-url:
-    description: 'Custom repository URL for recipes'
+    description: "Custom repository URL for recipes"
     required: false
-    default: ''
+    default: ""
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Setup Deno
       uses: denoland/setup-deno@v2

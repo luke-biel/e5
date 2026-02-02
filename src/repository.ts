@@ -39,7 +39,9 @@ async function fetchContent(url: string): Promise<string> {
 
   let response: Response;
   try {
-    response = await fetch(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    response = await fetch(url, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    });
   } catch (e) {
     if (e instanceof DOMException && e.name === "TimeoutError") {
       throw new Error(`Timeout fetching from ${url}`);
@@ -62,11 +64,15 @@ function validateIndex(data: unknown): RepositoryIndex {
   const obj = data as Record<string, unknown>;
 
   if (typeof obj.version !== "string") {
-    throw new Error("Invalid index: 'version' is required and must be a string");
+    throw new Error(
+      "Invalid index: 'version' is required and must be a string",
+    );
   }
 
   if (!Array.isArray(obj.recipes)) {
-    throw new Error("Invalid index: 'recipes' is required and must be an array");
+    throw new Error(
+      "Invalid index: 'recipes' is required and must be an array",
+    );
   }
 
   for (let i = 0; i < obj.recipes.length; i++) {
@@ -79,15 +85,21 @@ function validateIndex(data: unknown): RepositoryIndex {
     const e = entry as Record<string, unknown>;
 
     if (typeof e.name !== "string" || e.name.trim() === "") {
-      throw new Error(`Invalid index: 'recipes[${i}].name' is required and must be a non-empty string`);
+      throw new Error(
+        `Invalid index: 'recipes[${i}].name' is required and must be a non-empty string`,
+      );
     }
 
     if (e.description !== undefined && typeof e.description !== "string") {
-      throw new Error(`Invalid index: 'recipes[${i}].description' must be a string`);
+      throw new Error(
+        `Invalid index: 'recipes[${i}].description' must be a string`,
+      );
     }
 
     if (typeof e.file !== "string" || e.file.trim() === "") {
-      throw new Error(`Invalid index: 'recipes[${i}].file' is required and must be a non-empty string`);
+      throw new Error(
+        `Invalid index: 'recipes[${i}].file' is required and must be a non-empty string`,
+      );
     }
   }
 
@@ -101,8 +113,7 @@ export class Repository {
 
   static getDefaultConfig(): RepositoryConfig {
     return {
-      url:
-        Deno.env.get("E5_REPO_URL") ||
+      url: Deno.env.get("E5_REPO_URL") ||
         "https://raw.githubusercontent.com/luke-biel/e5/refs/heads/master/repo",
     };
   }
@@ -144,7 +155,7 @@ export class Repository {
       this.index?.recipes.filter(
         (r) =>
           r.name.toLowerCase().includes(lowerQuery) ||
-          r.description?.toLowerCase().includes(lowerQuery)
+          r.description?.toLowerCase().includes(lowerQuery),
       ) || []
     );
   }

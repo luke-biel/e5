@@ -1,5 +1,5 @@
 import { parseArgs } from "@std/cli/parse-args";
-import { red, bold } from "@std/fmt/colors";
+import { bold, red } from "@std/fmt/colors";
 import { Manager } from "./manager.ts";
 import config from "../deno.json" with { type: "json" };
 
@@ -80,7 +80,7 @@ async function main(): Promise<number> {
         if (availableOnly) {
           await manager.listAvailable();
         } else {
-          await manager.listRequired();
+          manager.listRequired();
         }
         break;
 
