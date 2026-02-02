@@ -1,5 +1,5 @@
 import { parse as parseToml } from "@std/toml";
-import { PackageManager } from "./detector.ts";
+import type { PackageManager } from "./detector.ts";
 
 export interface InstallMethod {
   packageName?: string;
@@ -44,8 +44,7 @@ interface RawRecipe {
   >;
 }
 
-export function loadRecipe(path: string): Recipe {
-  const content = Deno.readTextFileSync(path);
+export function parseRecipeContent(content: string): Recipe {
   const raw = parseToml(content) as unknown as RawRecipe;
 
   const installMethods = new Map<string, InstallMethod>();
@@ -74,6 +73,11 @@ export function loadRecipe(path: string): Recipe {
   };
 }
 
+export function loadRecipe(path: string): Recipe {
+  const content = Deno.readTextFileSync(path);
+  return parseRecipeContent(content);
+}
+
 export function getInstallMethod(
   recipe: Recipe,
   availableManagers: PackageManager[]
@@ -86,6 +90,26 @@ export function getInstallMethod(
   }
 
   return null;
+}
+
+/**
+ * Returns all available installation methods for a recipe in priority order.
+ * Used for fallback: if one method fails, try the next.
+ */
+export function getInstallMethods(
+  recipe: Recipe,
+  availableManagers: PackageManager[]
+): Array<[PackageManager, InstallMethod]> {
+  const methods: Array<[PackageManager, InstallMethod]> = [];
+
+  for (const manager of availableManagers) {
+    const method = recipe.installMethods.get(manager);
+    if (method) {
+      methods.push([manager, method]);
+    }
+  }
+
+  return methods;
 }
 
 export async function isInstalled(recipe: Recipe): Promise<boolean> {

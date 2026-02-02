@@ -1,5 +1,6 @@
 import { parse as parseToml } from "@std/toml";
-import { Recipe, InstallMethod } from "./recipe.ts";
+import type { Recipe } from "./recipe.ts";
+import { parseRecipeContent } from "./recipe.ts";
 
 export interface IndexEntry {
   name: string;
@@ -64,53 +65,7 @@ export class Repository {
     }
 
     const content = await response.text();
-    return this.parseRecipe(content);
-  }
-
-  private parseRecipe(content: string): Recipe {
-    const raw = parseToml(content) as {
-      package: {
-        name: string;
-        description?: string;
-        homepage?: string;
-        verify_command?: string;
-        verify_binary?: string;
-      };
-      install?: Record<
-        string,
-        {
-          package_name?: string;
-          tap?: string;
-          cask?: boolean;
-          script?: string;
-          post_install?: string;
-        }
-      >;
-    };
-
-    const installMethods = new Map<string, InstallMethod>();
-    if (raw.install) {
-      for (const [key, value] of Object.entries(raw.install)) {
-        installMethods.set(key, {
-          packageName: value.package_name,
-          tap: value.tap,
-          cask: value.cask,
-          script: value.script,
-          postInstall: value.post_install,
-        });
-      }
-    }
-
-    return {
-      package: {
-        name: raw.package.name,
-        description: raw.package.description,
-        homepage: raw.package.homepage,
-        verifyCommand: raw.package.verify_command,
-        verifyBinary: raw.package.verify_binary,
-      },
-      installMethods,
-    };
+    return parseRecipeContent(content);
   }
 
   async search(query: string): Promise<IndexEntry[]> {

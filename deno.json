@@ -1,4 +1,7 @@
 {
+  "name": "e5",
+  "version": "0.1.0",
+  "exports": "./src/main.ts",
   "tasks": {
     "run": "deno run --allow-read --allow-write --allow-run --allow-env --allow-net src/main.ts",
     "install": "deno install --allow-read --allow-write --allow-run --allow-env --allow-net -n e5 src/main.ts",

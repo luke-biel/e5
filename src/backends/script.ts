@@ -1,5 +1,6 @@
-import { InstallMethod } from "../recipe.ts";
-import { Backend, BackendError, runPostInstall } from "./mod.ts";
+import type { InstallMethod } from "../recipe.ts";
+import type { Backend } from "./mod.ts";
+import { BackendError, runPostInstall } from "./mod.ts";
 
 export class ScriptBackend implements Backend {
   name = "script";
@@ -45,9 +46,5 @@ export class ScriptBackend implements Backend {
     }
 
     await runPostInstall(method, dryRun);
-  }
-
-  async isInstalled(_packageName: string): Promise<boolean> {
-    return false;
   }
 }

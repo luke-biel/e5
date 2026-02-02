@@ -1,4 +1,4 @@
-# e5
+# e5 (ensure)
 
 Cross-platform tool installation manager. Define your tools in `requirements.toml`, run `e5 sync`.
 
@@ -33,3 +33,28 @@ packages = [
   "protobuf-compiler",
 ]
 ```
+
+## Version Pinning
+
+You can pin packages to specific versions using the `package@version` syntax. However, version pinning support varies by backend:
+
+| Backend  | Version Support | Notes |
+|----------|-----------------|-------|
+| apt      | Yes | Uses `apt-get install package=version` syntax |
+| script   | Yes | Version passed as `VERSION` environment variable |
+| homebrew | No | Use versioned formula names instead (e.g., `node@18`) |
+| pacman   | No | Use script backend with Arch Linux Archive for specific versions |
+
+When a version is specified but the backend doesn't support it, a warning is displayed and the latest version is installed.
+
+## Installation Fallback
+
+e5 automatically tries multiple installation methods if one fails. The fallback order is:
+
+1. **Native package manager** (apt, pacman) - highest priority
+2. **Homebrew** - cross-platform fallback
+3. **Script** - universal fallback
+
+For example, if a package has both `apt` and `script` installation methods defined and `apt` fails (e.g., version not available), e5 will automatically try the `script` method.
+
+Use `e5 show <package>` to see the fallback chain for a specific package.

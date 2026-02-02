@@ -1,6 +1,7 @@
 import { parseArgs } from "@std/cli/parse-args";
 import { red, bold } from "@std/fmt/colors";
 import { Manager } from "./manager.ts";
+import config from "../deno.json" with { type: "json" };
 
 function getDefaultRequirementsPath(): string {
   const envPath = Deno.env.get("E5_REQUIREMENTS");
@@ -58,7 +59,7 @@ async function main(): Promise<number> {
   }
 
   if (args.version || args.V) {
-    console.log("e5 0.1.0");
+    console.log(`${config.name} ${config.version}`);
     return 0;
   }
 

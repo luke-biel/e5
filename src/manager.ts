@@ -1,22 +1,17 @@
 import { bold, cyan, green, red, yellow, dim } from "@std/fmt/colors";
+import type { Environment } from "./detector.ts";
+import { detectEnvironment } from "./detector.ts";
+import type { Recipe } from "./recipe.ts";
 import {
-  Environment,
-  detectEnvironment,
-} from "./detector.ts";
-import {
-  Recipe,
   getInstallMethod,
+  getInstallMethods,
   isInstalled,
   checkVersion,
-  getInstalledVersion,
 } from "./recipe.ts";
 import { getBackend } from "./backends/mod.ts";
-import { Repository, RepositoryConfig } from "./repository.ts";
-import {
-  Requirements,
-  loadRequirements,
-  parsePackageSpec,
-} from "./requirements.ts";
+import { Repository, type RepositoryConfig } from "./repository.ts";
+import type { Requirements } from "./requirements.ts";
+import { loadRequirements, parsePackageSpec } from "./requirements.ts";
 
 export class Manager {
   private recipes: Map<string, Recipe> = new Map();
@@ -27,6 +22,16 @@ export class Manager {
     private repository: Repository,
     private env: Environment
   ) {}
+
+  /**
+   * Check if a package name is in requirements.
+   * Handles versioned specs like "taplo@0.9.3" correctly.
+   */
+  private isInRequirements(packageName: string): boolean {
+    return this.requirements.packages.some(
+      (spec) => parsePackageSpec(spec).name === packageName
+    );
+  }
 
   static async create(
     requirementsPath: string,
@@ -78,7 +83,7 @@ export class Manager {
     for (const name of this.requirements.packages.sort()) {
       try {
         const recipe = await this.getRecipe(name);
-        if (this.isInstalledSync(recipe)) {
+        if (await isInstalled(recipe)) {
           const desc = recipe.package.description
             ? ` - ${recipe.package.description}`
             : "";
@@ -139,35 +144,6 @@ export class Manager {
     return this.recipes.get(name)!;
   }
 
-  private isInstalledSync(recipe: Recipe): boolean {
-    if (recipe.package.verifyCommand) {
-      try {
-        const command = new Deno.Command("sh", {
-          args: ["-c", recipe.package.verifyCommand],
-          stdout: "null",
-          stderr: "null",
-        });
-        const { code } = command.outputSync();
-        return code === 0;
-      } catch {
-        return false;
-      }
-    }
-
-    const binary = recipe.package.verifyBinary || recipe.package.name;
-    try {
-      const command = new Deno.Command("which", {
-        args: [binary],
-        stdout: "null",
-        stderr: "null",
-      });
-      const { code } = command.outputSync();
-      return code === 0;
-    } catch {
-      return false;
-    }
-  }
-
   async search(query: string): Promise<void> {
     console.log(bold(`Searching for "${query}"...`));
     console.log();
@@ -180,7 +156,7 @@ export class Manager {
     }
 
     for (const entry of results) {
-      const inReqs = this.requirements.packages.includes(entry.name);
+      const inReqs = this.isInRequirements(entry.name);
       const marker = inReqs ? green(" [required]") : "";
       const desc = entry.description ? ` - ${entry.description}` : "";
       console.log(`  ${cyan(entry.name)}${marker}${desc}`);
@@ -194,7 +170,7 @@ export class Manager {
     const index = await this.repository.fetchIndex();
 
     for (const entry of index.recipes.sort((a, b) => a.name.localeCompare(b.name))) {
-      const inReqs = this.requirements.packages.includes(entry.name);
+      const inReqs = this.isInRequirements(entry.name);
       const marker = inReqs ? green(" [required]") : "";
       const desc = entry.description ? ` - ${entry.description}` : "";
       console.log(`  ${cyan(entry.name)}${marker}${desc}`);
@@ -214,11 +190,11 @@ export class Manager {
       console.log(`${bold("Homepage:")} ${recipe.package.homepage}`);
     }
 
-    const inReqs = this.requirements.packages.includes(packageName);
+    const inReqs = this.isInRequirements(packageName);
     console.log(`${bold("In requirements:")} ${inReqs ? green("yes") : yellow("no")}`);
 
-    const installed = this.isInstalledSync(recipe);
-    const status = installed ? green("installed") : red("not installed");
+    const installedStatus = await isInstalled(recipe);
+    const status = installedStatus ? green("installed") : red("not installed");
     console.log(`${bold("Status:")} ${status}`);
 
     console.log();
@@ -236,12 +212,12 @@ export class Manager {
     console.log(bold("Available tools:"));
     console.log(`  ${cyan(this.env.availableManagers.join(", "))}`);
 
-    const result = getInstallMethod(recipe, this.env.availableManagers);
-    if (result) {
-      const [manager] = result;
-      console.log(`${bold("Would use:")} ${green(manager)}`);
+    const methods = getInstallMethods(recipe, this.env.availableManagers);
+    if (methods.length > 0) {
+      const chain = methods.map(([m]) => m).join(" → ");
+      console.log(`${bold("Fallback chain:")} ${green(chain)}`);
     } else {
-      console.log(`${bold("Would use:")} ${red("none (no method available)")}`);
+      console.log(`${bold("Fallback chain:")} ${red("none (no method available)")}`);
     }
   }
 
@@ -276,32 +252,63 @@ export class Manager {
       }
     }
 
-    const result = getInstallMethod(recipe, this.env.availableManagers);
-    if (!result) {
+    const methods = getInstallMethods(recipe, this.env.availableManagers);
+    if (methods.length === 0) {
       throw new Error(
         `No installation method available for ${packageName}`
       );
     }
 
-    const [manager, method] = result;
-
     const versionDisplay = effectiveVersion ? `@${effectiveVersion}` : "";
-    if (dryRun) {
-      console.log(
-        `${cyan("Would install:")} ${cyan(packageName)}${versionDisplay} via ${yellow(manager)}`
-      );
-    } else {
-      console.log(
-        `${green("Installing:")} ${cyan(packageName)}${versionDisplay} via ${yellow(manager)}...`
-      );
+
+    // Try each method in order (native → homebrew → script)
+    const errors: Array<{ manager: string; error: string }> = [];
+
+    for (let i = 0; i < methods.length; i++) {
+      const [manager, method] = methods[i];
+      const isLastMethod = i === methods.length - 1;
+
+      if (dryRun) {
+        // In dry-run mode, just show what would happen with the first method
+        console.log(
+          `${cyan("Would install:")} ${cyan(packageName)}${versionDisplay} via ${yellow(manager)}`
+        );
+        if (methods.length > 1) {
+          const fallbacks = methods.slice(1).map(([m]) => m).join(", ");
+          console.log(dim(`  Fallback methods available: ${fallbacks}`));
+        }
+        return;
+      }
+
+      try {
+        console.log(
+          `${green("Installing:")} ${cyan(packageName)}${versionDisplay} via ${yellow(manager)}...`
+        );
+
+        const backend = getBackend(manager);
+        await backend.install(packageName, method, dryRun, effectiveVersion);
+
+        console.log(`${bold(green("Installed:"))} ${cyan(packageName)}${versionDisplay}`);
+        return; // Success, no need to try other methods
+      } catch (e) {
+        const errorMsg = (e as Error).message;
+        errors.push({ manager, error: errorMsg });
+
+        if (!isLastMethod) {
+          console.log(
+            `${yellow("Failed:")} ${manager} installation failed, trying next method...`
+          );
+          console.log(dim(`  Error: ${errorMsg}`));
+        }
+      }
     }
 
-    const backend = getBackend(manager);
-    await backend.install(packageName, method, dryRun, effectiveVersion);
-
-    if (!dryRun) {
-      console.log(`${bold(green("Installed:"))} ${cyan(packageName)}${versionDisplay}`);
+    // All methods failed
+    console.log(red(`Failed to install ${packageName} with all available methods:`));
+    for (const { manager, error } of errors) {
+      console.log(`  ${yellow(manager)}: ${error}`);
     }
+    throw new Error(`All installation methods failed for ${packageName}`);
   }
 
   async sync(dryRun: boolean, ignoreLocal = false): Promise<void> {

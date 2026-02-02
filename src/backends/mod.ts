@@ -1,5 +1,5 @@
 import { PackageManager } from "../detector.ts";
-import { InstallMethod } from "../recipe.ts";
+import type { InstallMethod } from "../recipe.ts";
 import { HomebrewBackend } from "./homebrew.ts";
 import { AptBackend } from "./apt.ts";
 import { PacmanBackend } from "./pacman.ts";
@@ -13,7 +13,6 @@ export interface Backend {
     dryRun: boolean,
     version?: string
   ): Promise<void>;
-  isInstalled(packageName: string): Promise<boolean>;
 }
 
 export class BackendError extends Error {
