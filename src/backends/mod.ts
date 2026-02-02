@@ -10,7 +10,6 @@ export interface Backend {
   install(
     pkgName: string,
     method: InstallMethod,
-    dryRun: boolean,
     version?: string,
   ): Promise<void>;
 }
@@ -53,16 +52,8 @@ export function getBackend(manager: PackageManager): Backend {
   }
 }
 
-export async function runCommand(
-  cmd: string[],
-  dryRun: boolean,
-): Promise<void> {
+export async function runCommand(cmd: string[]): Promise<void> {
   const cmdStr = cmd.join(" ");
-
-  if (dryRun) {
-    console.log(`  Would run: ${cmdStr}`);
-    return;
-  }
 
   const command = new Deno.Command(cmd[0], {
     args: cmd.slice(1),
@@ -77,16 +68,8 @@ export async function runCommand(
   }
 }
 
-export async function runPostInstall(
-  method: InstallMethod,
-  dryRun: boolean,
-): Promise<void> {
+export async function runPostInstall(method: InstallMethod): Promise<void> {
   if (!method.postInstall) return;
-
-  if (dryRun) {
-    console.log(`  Would run post-install: ${method.postInstall}`);
-    return;
-  }
 
   const command = new Deno.Command("sh", {
     args: ["-c", method.postInstall],

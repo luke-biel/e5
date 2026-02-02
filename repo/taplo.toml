@@ -1,8 +1,5 @@
 [package]
 name = "taplo"
-description = "TOML toolkit with LSP, formatter, and validator"
-homepage = "https://taplo.tamasfe.dev/"
-verify_binary = "taplo"
 
 [install.homebrew]
 pkg_name = "taplo"

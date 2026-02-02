@@ -12,7 +12,6 @@ export class Manager {
   private recipes: Map<string, Recipe> = new Map();
 
   private constructor(
-    private requirementsPath: string,
     private requirements: Requirements,
     private repository: Repository,
     private env: Environment,
@@ -38,7 +37,7 @@ export class Manager {
     const repository = new Repository(config);
     const env = await detectEnvironment();
 
-    return new Manager(requirementsPath, requirements, repository, env);
+    return new Manager(requirements, repository, env);
   }
 
   listRequired() {
@@ -69,95 +68,38 @@ export class Manager {
     return this.recipes.get(name)!;
   }
 
-  async search(query: string): Promise<void> {
-    console.log(bold(`Searching for "${query}"...`));
+  async search(query?: string): Promise<void> {
+    if (query) {
+      console.log(bold(`Searching for "${query}"...`));
+    } else {
+      console.log(bold("Available packages in repository:"));
+    }
     console.log();
 
-    const results = await this.repository.search(query);
+    const results = query
+      ? await this.repository.search(query)
+      : (await this.repository.fetchIndex()).recipes;
 
     if (results.length === 0) {
       console.log(dim("  No packages found"));
       return;
     }
 
-    for (const entry of results) {
-      const inReqs = this.isInRequirements(entry.name);
-      const marker = inReqs ? green(" [required]") : "";
-      const desc = entry.description ? ` - ${entry.description}` : "";
-      console.log(`  ${cyan(entry.name)}${marker}${desc}`);
-    }
-  }
-
-  async listAvailable(): Promise<void> {
-    console.log(bold("Available packages in repository:"));
-    console.log();
-
-    const index = await this.repository.fetchIndex();
-
     for (
-      const entry of index.recipes.sort((a, b) => a.name.localeCompare(b.name))
+      const entry of results.toSorted((a, b) => a.name.localeCompare(b.name))
     ) {
       const inReqs = this.isInRequirements(entry.name);
       const marker = inReqs ? green(" [required]") : "";
       const desc = entry.description ? ` - ${entry.description}` : "";
-      console.log(`  ${cyan(entry.name)}${marker}${desc}`);
-    }
-  }
 
-  async show(pkgSpec: string): Promise<void> {
-    const { name: pkgName, version } = parsePackageSpec(pkgSpec);
-    const recipe = await this.getRecipe(pkgName);
+      // Fetch recipe to get fallback chain
+      const recipe = await this.getRecipe(entry.name);
+      const methods = getInstallMethods(recipe, this.env.availableManagers);
+      const chain = methods.length > 0
+        ? dim(` <${methods.map(([m]) => m).join(" -> ")}>`)
+        : dim(" <no method>");
 
-    console.log(`${bold("Package:")} ${cyan(recipe.package.name)}`);
-
-    if (recipe.package.description) {
-      console.log(`${bold("Description:")} ${recipe.package.description}`);
-    }
-
-    if (recipe.package.homepage) {
-      console.log(`${bold("Homepage:")} ${recipe.package.homepage}`);
-    }
-
-    const inReqs = this.isInRequirements(pkgName);
-    console.log(
-      `${bold("In requirements:")} ${inReqs ? green("yes") : yellow("no")}`,
-    );
-
-    console.log();
-    console.log(bold("Installation methods:"));
-    for (const [key, method] of recipe.installMethods) {
-      const name = method.pkgName || recipe.package.name;
-      if (method.script) {
-        console.log(`  ${yellow(key)}: <script>`);
-      } else {
-        console.log(`  ${yellow(key)}: ${name}`);
-      }
-    }
-
-    console.log();
-    console.log(bold("Available tools:"));
-    console.log(`  ${cyan(this.env.availableManagers.join(", "))}`);
-
-    const methods = getInstallMethods(
-      recipe,
-      this.env.availableManagers,
-      version,
-    );
-    if (methods.length > 0) {
-      const chain = methods.map(([m]) => m).join(" → ");
-      if (version) {
-        console.log(
-          `${bold("Fallback chain")} ${dim(`(for version ${version})`)}${
-            bold(":")
-          } ${green(chain)}`,
-        );
-      } else {
-        console.log(`${bold("Fallback chain:")} ${green(chain)}`);
-      }
-    } else {
-      console.log(
-        `${bold("Fallback chain:")} ${red("none (no method available)")}`,
-      );
+      console.log(`  ${cyan(entry.name)}${marker}${desc}${chain}`);
     }
   }
 
@@ -168,7 +110,6 @@ export class Manager {
    */
   private async installOne(
     pkgSpec: string,
-    dryRun: boolean,
     requiredVersion?: string,
   ): Promise<void> {
     const { name: pkgName, version } = parsePackageSpec(pkgSpec);
@@ -195,20 +136,6 @@ export class Manager {
       const [manager, method] = methods[i];
       const isLastMethod = i === methods.length - 1;
 
-      if (dryRun) {
-        // In dry-run mode, just show what would happen with the first method
-        console.log(
-          `${cyan("Would install:")} ${cyan(pkgName)}${versionDisplay} via ${
-            yellow(manager)
-          }`,
-        );
-        if (methods.length > 1) {
-          const fallbacks = methods.slice(1).map(([m]) => m).join(", ");
-          console.log(dim(`  Fallback methods available: ${fallbacks}`));
-        }
-        return;
-      }
-
       try {
         console.log(
           `${green("Installing:")} ${cyan(pkgName)}${versionDisplay} via ${
@@ -217,7 +144,7 @@ export class Manager {
         );
 
         const backend = getBackend(manager);
-        await backend.install(pkgName, method, dryRun, effectiveVersion);
+        await backend.install(pkgName, method, effectiveVersion);
 
         console.log(
           `${bold(green("Installed:"))} ${cyan(pkgName)}${versionDisplay}`,
@@ -254,7 +181,7 @@ export class Manager {
    * then installs each package while collecting successes and failures.
    * Throws if any package fails to install.
    */
-  async sync(dryRun: boolean): Promise<void> {
+  async sync(): Promise<void> {
     if (this.requirements.packages.length === 0) {
       console.log(yellow("No packages in requirements.toml"));
       console.log(
@@ -306,7 +233,7 @@ export class Manager {
 
     for (const { spec, name, version } of toInstall) {
       try {
-        await this.installOne(name, dryRun, version);
+        await this.installOne(name, version);
         succeeded.push(spec);
       } catch (e) {
         failed.push({ spec, error: (e as Error).message });

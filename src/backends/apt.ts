@@ -9,12 +9,11 @@ export class AptBackend implements Backend {
   async install(
     pkgName: string,
     method: InstallMethod,
-    dryRun: boolean,
     version?: string,
   ): Promise<void> {
     // Update package cache before first install
     if (!AptBackend.cacheUpdated) {
-      await runCommand(["sudo", "apt-get", "update"], dryRun);
+      await runCommand(["sudo", "apt-get", "update"]);
       AptBackend.cacheUpdated = true;
     }
 
@@ -25,7 +24,7 @@ export class AptBackend implements Backend {
       pkgSpec = `${pkgSpec}=${version}`;
     }
 
-    await runCommand(["sudo", "apt-get", "install", "-y", pkgSpec], dryRun);
-    await runPostInstall(method, dryRun);
+    await runCommand(["sudo", "apt-get", "install", "-y", pkgSpec]);
+    await runPostInstall(method);
   }
 }

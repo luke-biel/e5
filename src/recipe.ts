@@ -14,8 +14,6 @@ export interface InstallMethod {
 
 export interface PackageInfo {
   name: string;
-  description?: string;
-  homepage?: string;
 }
 
 export interface Recipe {
@@ -26,8 +24,6 @@ export interface Recipe {
 interface RawRecipe {
   package: {
     name: string;
-    description?: string;
-    homepage?: string;
   };
   install?: Record<
     string,
@@ -71,14 +67,6 @@ function validateRecipe(data: unknown): RawRecipe {
     throw new Error(
       "Invalid recipe: 'package.name' is required and must be a non-empty string",
     );
-  }
-
-  if (pkg.description !== undefined && typeof pkg.description !== "string") {
-    throw new Error("Invalid recipe: 'package.description' must be a string");
-  }
-
-  if (pkg.homepage !== undefined && typeof pkg.homepage !== "string") {
-    throw new Error("Invalid recipe: 'package.homepage' must be a string");
   }
 
   if (obj.install !== undefined) {
@@ -158,16 +146,9 @@ export function parseRecipeContent(content: string): Recipe {
   return {
     package: {
       name: raw.package.name,
-      description: raw.package.description,
-      homepage: raw.package.homepage,
     },
     installMethods,
   };
-}
-
-export function loadRecipe(path: string): Recipe {
-  const content = Deno.readTextFileSync(path);
-  return parseRecipeContent(content);
 }
 
 /**

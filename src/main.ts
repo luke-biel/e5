@@ -16,17 +16,13 @@ USAGE:
   e5 [OPTIONS] <COMMAND>
 
 COMMANDS:
-  list                List required packages
-  list --available    List all packages available in repository
-  search <query>      Search for packages in repository
-  show <package>      Show details about a specific package
+  required            List required packages
+  search [query]      List available packages, optionally filtered by query
   sync                Install all required packages
 
 OPTIONS:
   -f, --file <PATH>      Path to requirements.toml (default: ./requirements.toml)
   -u, --repo-url <URL>   Repository URL (or set E5_REPO_URL)
-  -n, --dry-run          Show what would be done without executing
-  -a, --available        Show all available packages (for list command)
   -h, --help             Show this help message
   -V, --version          Show version
 
@@ -39,14 +35,12 @@ ENVIRONMENT VARIABLES:
 async function main(): Promise<number> {
   const args = parseArgs(Deno.args, {
     string: ["file", "repo-url"],
-    boolean: ["help", "version", "dry-run", "available"],
+    boolean: ["help", "version"],
     alias: {
       f: "file",
       u: "repo-url",
       h: "help",
       V: "version",
-      n: "dry-run",
-      a: "available",
     },
   });
 
@@ -68,44 +62,24 @@ async function main(): Promise<number> {
 
   const requirementsPath = args.file || getDefaultRequirementsPath();
   const repoUrl = args["repo-url"];
-  const dryRun = args["dry-run"] || false;
-  const availableOnly = args.available || false;
 
   try {
     const repoConfig = repoUrl ? { url: repoUrl } : undefined;
     const manager = await Manager.create(requirementsPath, repoConfig);
 
     switch (command) {
-      case "list":
-        if (availableOnly) {
-          await manager.listAvailable();
-        } else {
-          manager.listRequired();
-        }
+      case "required":
+        manager.listRequired();
         break;
 
       case "search": {
         const query = args._[1] as string | undefined;
-        if (!query) {
-          console.error(red("Error: search query required"));
-          return 1;
-        }
         await manager.search(query);
         break;
       }
 
-      case "show": {
-        const pkg = args._[1] as string | undefined;
-        if (!pkg) {
-          console.error(red("Error: package name required"));
-          return 1;
-        }
-        await manager.show(pkg);
-        break;
-      }
-
       case "sync":
-        await manager.sync(dryRun);
+        await manager.sync();
         break;
 
       default:

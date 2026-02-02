@@ -1,8 +1,5 @@
 [package]
 name = "pkg-config"
-description = "Helper tool for compiling applications and libraries"
-homepage = "https://www.freedesktop.org/wiki/Software/pkg-config/"
-verify_binary = "pkg-config"
 
 [install.homebrew]
 pkg_name = "pkg-config"

@@ -10,12 +10,11 @@ export class PacmanBackend implements Backend {
   async install(
     pkgName: string,
     method: InstallMethod,
-    dryRun: boolean,
     version?: string,
   ): Promise<void> {
     // Sync package database before first install
     if (!PacmanBackend.cacheUpdated) {
-      await runCommand(["sudo", "pacman", "-Sy"], dryRun);
+      await runCommand(["sudo", "pacman", "-Sy"]);
       PacmanBackend.cacheUpdated = true;
     }
 
@@ -36,10 +35,7 @@ export class PacmanBackend implements Backend {
       );
     }
 
-    await runCommand(
-      ["sudo", "pacman", "-S", "--noconfirm", name],
-      dryRun,
-    );
-    await runPostInstall(method, dryRun);
+    await runCommand(["sudo", "pacman", "-S", "--noconfirm", name]);
+    await runPostInstall(method);
   }
 }

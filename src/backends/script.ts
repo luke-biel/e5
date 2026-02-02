@@ -8,23 +8,10 @@ export class ScriptBackend implements Backend {
   async install(
     pkgName: string,
     method: InstallMethod,
-    dryRun: boolean,
     version?: string,
   ): Promise<void> {
     if (!method.script) {
       throw new BackendError("No script provided for script installation");
-    }
-
-    if (dryRun) {
-      if (version) {
-        console.log(`  Would run script with VERSION=${version}:`);
-      } else {
-        console.log("  Would run script:");
-      }
-      for (const line of method.script.split("\n")) {
-        console.log(`    ${line}`);
-      }
-      return;
     }
 
     const env: Record<string, string> = { ...Deno.env.toObject() };
@@ -45,6 +32,6 @@ export class ScriptBackend implements Backend {
       throw new BackendError(`Installation script for ${pkgName} failed`);
     }
 
-    await runPostInstall(method, dryRun);
+    await runPostInstall(method);
   }
 }

@@ -1,8 +1,5 @@
 [package]
 name = "libssl-dev"
-description = "OpenSSL development libraries"
-homepage = "https://www.openssl.org/"
-verify_command = "pkg-config --exists openssl"
 
 [install.homebrew]
 pkg_name = "openssl"

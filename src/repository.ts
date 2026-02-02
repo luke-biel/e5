@@ -169,10 +169,8 @@ export class Repository {
 
     const lowerQuery = query.toLowerCase();
     return (
-      this.index?.recipes.filter(
-        (r) =>
-          r.name.toLowerCase().includes(lowerQuery) ||
-          r.description?.toLowerCase().includes(lowerQuery),
+      this.index?.recipes.filter((r) =>
+        r.name.toLowerCase().includes(lowerQuery)
       ) || []
     );
   }

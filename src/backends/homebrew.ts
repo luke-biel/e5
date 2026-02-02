@@ -9,7 +9,6 @@ export class HomebrewBackend implements Backend {
   async install(
     pkgName: string,
     method: InstallMethod,
-    dryRun: boolean,
     version?: string,
   ): Promise<void> {
     const name = method.pkgName || pkgName;
@@ -30,7 +29,7 @@ export class HomebrewBackend implements Backend {
     }
 
     if (method.tap) {
-      await runCommand(["brew", "tap", method.tap], dryRun);
+      await runCommand(["brew", "tap", method.tap]);
     }
 
     const cmd = ["brew", "install"];
@@ -39,7 +38,7 @@ export class HomebrewBackend implements Backend {
     }
     cmd.push(name);
 
-    await runCommand(cmd, dryRun);
-    await runPostInstall(method, dryRun);
+    await runCommand(cmd);
+    await runPostInstall(method);
   }
 }

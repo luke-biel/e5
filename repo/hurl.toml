@@ -1,8 +1,5 @@
 [package]
 name = "hurl"
-description = "HTTP client that runs .hurl files"
-homepage = "https://hurl.dev/"
-verify_binary = "hurl"
 
 [install.homebrew]
 pkg_name = "hurl"

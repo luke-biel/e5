@@ -1,8 +1,5 @@
 [package]
 name = "protobuf-compiler"
-description = "Protocol Buffers compiler (protoc)"
-homepage = "https://protobuf.dev/"
-verify_binary = "protoc"
 
 [install.homebrew]
 pkg_name = "protobuf"
